@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Town Fish Tank: Interactive Project Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Calm Harmony" - Neutrals with subtle accents -->
+    <!-- Application Structure Plan: The SPA is structured around a four-stage project lifecycle: Blueprint, Build, Customize, and Deploy. This task-oriented flow is more intuitive for a project guide than the original document's linear structure. A sticky top navigation allows users to jump between these logical stages. Key interactions include tabbed content for comparisons (Pi 4 vs. Pi 5), interactive checklists for setup processes, and dynamic charts for visualizing costs and system architecture. This design breaks down a complex project into manageable, explorable steps, prioritizing user understanding and actionability. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: System Architecture -> Goal: Organize/Relationships -> Viz: Interactive HTML/CSS Diagram -> Interaction: Hover to highlight data flow paths -> Justification: Visually clarifies the complex data loop from backend to LLM and back to the frontend, making the abstract concept tangible. -> Library/Method: HTML/CSS with JS for interactivity.
+        - Report Info: Pi 4 vs. Pi 5 Comparison -> Goal: Compare -> Viz: Tabbed content panes -> Interaction: Click tabs to switch between detailed specs -> Justification: Allows for a direct, side-by-side comparison of critical hardware choices without overwhelming the user with a large table. -> Library/Method: HTML/CSS with JS for tab switching.
+        - Report Info: Bill of Materials -> Goal: Inform/Compare -> Viz: Doughnut Chart (Chart.js) -> Interaction: Hover over segments to see cost breakdown by category -> Justification: Provides a quick, high-level overview of project costs, making budget planning easier. -> Library/Method: Chart.js/Canvas.
+        - Report Info: Setup/Assembly Steps -> Goal: Organize/Inform -> Viz: Interactive Checklists -> Interaction: Click to mark steps as complete -> Justification: Turns passive instructions into an active to-do list, helping the user track their progress through the build. -> Library/Method: HTML/CSS with JS for state change.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #3d3d3d;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-button.active, .nav-button:hover {
+            border-bottom-color: #a5b4fc;
+            color: #4338ca;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-button.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            font-weight: 600;
+        }
+        .checklist-item {
+            transition: all 0.2s ease;
+        }
+        .checklist-item.completed {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .checklist-item.completed .step-circle {
+            background-color: #4ade80;
+            color: white;
+        }
+        .diagram-path {
+            transition: all 0.3s ease;
+        }
+        .diagram-node:hover ~ .diagram-path, .diagram-node.highlight ~ .diagram-path {
+            stroke-width: 4;
+            stroke: #fb923c;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">AI Town Fish Tank</h1>
+            <p class="mt-4 text-lg text-gray-600">An Interactive Guide to Building Your Own Generative Agent Simulation</p>
+        </header>
+
+        <nav class="sticky top-0 bg-f8f7f4/80 backdrop-blur-md z-10 mb-12 border-b">
+            <div class="flex justify-center space-x-4 md:space-x-8">
+                <button class="nav-button active py-4 px-2 text-lg font-medium text-gray-600" data-target="blueprint">1. Blueprint</button>
+                <button class="nav-button py-4 px-2 text-lg font-medium text-gray-600" data-target="build">2. Build</button>
+                <button class="nav-button py-4 px-2 text-lg font-medium text-gray-600" data-target="customize">3. Customize</button>
+                <button class="nav-button py-4 px-2 text-lg font-medium text-gray-600" data-target="deploy">4. Deploy</button>
+            </div>
+        </nav>
+
+        <main>
+            <!-- Section 1: Blueprint -->
+            <section id="blueprint" class="content-section active">
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-800">Project Blueprint</h2>
+                    <p class="text-gray-600 mb-8">This section outlines the project's conceptual foundation, system architecture, and the critical hardware and software choices you'll need to make. Understanding these core components is the first step toward a successful build.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- System Architecture Diagram -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">System Data Flow</h3>
+                            <div id="architecture-diagram" class="relative w-full h-[450px] text-xs">
+                                <!-- Nodes -->
+                                <div id="node-pi" class="diagram-node absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-64 bg-indigo-100 border-2 border-indigo-300 rounded-lg p-2 flex flex-col justify-center items-center shadow-md">
+                                    <strong class="font-bold">Raspberry Pi Host</strong>
+                                    <div class="mt-2 space-y-1 text-center">
+                                        <div class="bg-white p-1 rounded">Frontend (Vite/React)</div>
+                                        <div class="bg-white p-1 rounded">Backend (Node.js)</div>
+                                        <div class="bg-white p-1 rounded">Database (Convex)</div>
+                                    </div>
+                                </div>
+                                <div id="node-llm" class="diagram-node absolute top-8 left-1/2 -translate-x-1/2 w-40 bg-amber-100 border-2 border-amber-300 rounded-lg p-2 text-center shadow-md">
+                                    <strong class="font-bold">External LLM API</strong>
+                                    <span>(Gemini / OpenRouter)</span>
+                                </div>
+                                <div id="node-display" class="diagram-node absolute bottom-0 left-1/2 -translate-x-1/2 w-40 bg-emerald-100 border-2 border-emerald-300 rounded-lg p-2 text-center shadow-md">
+                                    <strong class="font-bold">LCD Display</strong>
+                                    <span>(via Controller)</span>
+                                </div>
+                                <!-- Canvas for lines -->
+                                <canvas id="diagram-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                                <!-- Explanations -->
+                                <p class="text-center text-gray-500 mt-4 absolute bottom-[-50px] w-full">Hover over key components to trace the data flow.</p>
+                            </div>
+                        </div>
+
+                        <!-- Hardware Choices -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Core Processor: Pi 4 vs. Pi 5</h3>
+                            <div class="flex border border-gray-200 rounded-lg mb-4">
+                                <button class="tab-button active flex-1 p-3 rounded-l-md" data-tab="pi5">Raspberry Pi 5</button>
+                                <button class="tab-button flex-1 p-3 rounded-r-md" data-tab="pi4">Raspberry Pi 4</button>
+                            </div>
+                            <div id="pi5" class="tab-content active">
+                                <h4 class="font-semibold text-lg text-indigo-700">Raspberry Pi 5 (Recommended)</h4>
+                                <p class="text-gray-600 mt-2 mb-4">Offers significantly better performance for a smoother simulation, but has stricter power requirements.</p>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li class="flex items-start"><span class="text-emerald-500 mr-2">✔</span> <strong>CPU:</strong> Faster Quad-core Cortex-A76 for responsive backend processing.</li>
+                                    <li class="flex items-start"><span class="text-emerald-500 mr-2">✔</span> <strong>RAM:</strong> Faster LPDDR4X for better multitasking.</li>
+                                    <li class="flex items-start"><span class="text-amber-500 mr-2">❗</span> <strong>Power:</strong> Requires a specific 5V/5A (25W) USB-C PD supply. Using the official PSU is critical to avoid performance throttling.</li>
+                                </ul>
+                            </div>
+                            <div id="pi4" class="tab-content">
+                                <h4 class="font-semibold text-lg text-indigo-700">Raspberry Pi 4 Model B</h4>
+                                <p class="text-gray-600 mt-2 mb-4">A capable and more straightforward option, especially regarding power systems.</p>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li class="flex items-start"><span class="text-emerald-500 mr-2">✔</span> <strong>CPU:</strong> Quad-core Cortex-A72 is sufficient for the simulation.</li>
+                                    <li class="flex items-start"><span class="text-emerald-500 mr-2">✔</span> <strong>Power:</strong> Standard 5V/3A (15W) USB-C supply is easier to integrate into custom power solutions.</li>
+                                    <li class="flex items-start"><span class="text-amber-500 mr-2">❗</span> <strong>Performance:</strong> May experience minor lag with a large number of agents compared to the Pi 5.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Build -->
+            <section id="build" class="content-section">
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-800">The Build Process</h2>
+                    <p class="text-gray-600 mb-8">This phase covers the hands-on work: preparing the Raspberry Pi, deploying the software, and assembling the physical hardware. Follow these checklists to ensure a smooth build.</p>
+
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Pi Setup Checklist -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Pi Software Setup</h3>
+                            <ul id="pi-setup-checklist" class="space-y-3">
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">1</span> Flash 64-bit Raspberry Pi OS Lite.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">2</span> Configure headless SSH & Wi-Fi via Imager.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">3</span> Run system updates (`sudo apt update && sudo apt upgrade`).</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">4</span> Install Git, Python, and Node.js (v18+).</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">5</span> Install Docker and Docker Compose.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">6</span> Add user to `docker` group.</li>
+                            </ul>
+                        </div>
+
+                        <!-- AI Town Deploy Checklist -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">AI Town Deployment</h3>
+                             <ul id="ai-town-deploy-checklist" class="space-y-3">
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">1</span> Clone `ai-town` repository from GitHub.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">2</span> Run `docker compose up --build -d` to start services.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">3</span> Get API Key from LLM provider (e.g., OpenRouter).</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">4</span> Set `LLM_API_URL` and `LLM_API_KEY` via `npx convex env set`.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">5</span> Verify logs with `docker compose logs -f backend`.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">6</span> Access frontend at `http://<pi_ip>:5173` to test.</li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Hardware Assembly Checklist -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Hardware Assembly</h3>
+                             <ul id="hardware-assembly-checklist" class="space-y-3">
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">1</span> Carefully disassemble laptop to get panel model number.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">2</span> Source a matching LCD controller board kit.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">3</span> Bench test the panel, controller, and Pi.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">4</span> Design and fabricate the enclosure (e.g., shadow box).</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">5</span> Mount all components securely inside.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">6</span> Ensure adequate ventilation for cooling.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Customize -->
+            <section id="customize" class="content-section">
+                 <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-800">Customizing Your World</h2>
+                    <p class="text-gray-600 mb-8">This is where the project comes to life. Modify the characters, environment, and visuals to create a truly unique simulation. After making changes, remember to re-initialize the world with `npx convex run testing:wipeAllTables` and `npx convex run init`.</p>
+                    
+                    <div class="grid md:grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-200">
+                            <h3 class="text-xl font-semibold text-indigo-800">Character & Narrative</h3>
+                            <p class="mt-2 text-indigo-700">Edit `data/characters.ts` to define your agents. The `description` field is the core of their personality. Be creative! Give them unique goals, quirks, and relationships.</p>
+                        </div>
+                        <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-200">
+                            <h3 class="text-xl font-semibold text-emerald-800">Environment & Map</h3>
+                            <p class="mt-2 text-emerald-700">Use the Tiled Map Editor to design a new map. Export it as JSON, convert it using the provided script (`data/convertMap.js`), and update `convex/init.ts` to load your new world.</p>
+                        </div>
+                        <div class="bg-amber-50 p-6 rounded-xl border border-amber-200">
+                            <h3 class="text-xl font-semibold text-amber-800">Visuals & Assets</h3>
+                            <p class="mt-2 text-amber-700">Create or source new pixel art spritesheets for characters and tilesets for your map. Place them in `public/assets/` and update the paths in `data/characters.ts` to change the look.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Deploy -->
+            <section id="deploy" class="content-section">
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-800">Deployment & Automation</h2>
+                    <p class="text-gray-600 mb-8">The final phase transforms your project into a true, self-sustaining appliance. These steps ensure the simulation starts automatically on boot and runs reliably 24/7.</p>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Automation Steps -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">System Automation</h3>
+                             <ul id="automation-checklist" class="space-y-3">
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">1</span> Enable Desktop Autologin via `raspi-config`.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">2</span> Create autostart script for Chromium in Kiosk Mode.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">3</span> Add `restart: unless-stopped` to all services in `docker-compose.yml`.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">4</span> Configure Docker log rotation in `/etc/docker/daemon.json` to save disk space.</li>
+                                <li class="checklist-item flex items-center cursor-pointer"><span class="step-circle flex-shrink-0 w-6 h-6 bg-gray-200 rounded-full text-center font-bold mr-3">5</span> Reboot the system to test full automation.</li>
+                            </ul>
+                        </div>
+
+                        <!-- BOM Chart -->
+                        <div class="bg-gray-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Estimated Cost Breakdown</h3>
+                            <div class="chart-container">
+                                <canvas id="bomChart"></canvas>
+                            </div>
+                            <p class="text-center text-gray-500 mt-4">Hover over the chart for details. Costs are estimates and will vary.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const contentSections = document.querySelectorAll('.content-section');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const checklists = document.querySelectorAll('.checklist-item');
+
+            // Main navigation
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === button.dataset.target) {
+                            section.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Tabbed content for Pi comparison
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === button.dataset.tab) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Interactive checklists
+            checklists.forEach(item => {
+                item.addEventListener('click', () => {
+                    item.classList.toggle('completed');
+                });
+            });
+
+            // Bill of Materials Chart
+            const bomCtx = document.getElementById('bomChart');
+            if (bomCtx) {
+                new Chart(bomCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Compute (Pi, SD)', 'Display (Controllers)', 'Power', 'Enclosure & Tools'],
+                        datasets: [{
+                            label: 'Estimated Cost',
+                            data: [70, 75, 25, 50],
+                            backgroundColor: [
+                                'rgba(165, 180, 252, 0.8)', // indigo-300
+                                'rgba(110, 231, 183, 0.8)', // emerald-300
+                                'rgba(251, 191, 36, 0.8)', // amber-400
+                                'rgba(209, 213, 219, 0.8)'  // gray-300
+                            ],
+                            borderColor: [
+                                'rgba(129, 140, 248, 1)',
+                                'rgba(52, 211, 153, 1)',
+                                'rgba(245, 158, 11, 1)',
+                                'rgba(156, 163, 175, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Architecture Diagram
+            const canvas = document.getElementById('diagram-canvas');
+            const diagramContainer = document.getElementById('architecture-diagram');
+            if (canvas && diagramContainer) {
+                const ctx = canvas.getContext('2d');
+                
+                const resizeCanvas = () => {
+                    canvas.width = diagramContainer.clientWidth;
+                    canvas.height = diagramContainer.clientHeight;
+                    drawLines();
+                };
+
+                const getElementCoords = (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) return {x: 0, y: 0, width: 0, height: 0};
+                    return {
+                        x: el.offsetLeft,
+                        y: el.offsetTop,
+                        width: el.offsetWidth,
+                        height: el.offsetHeight
+                    };
+                };
+
+                const drawLines = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const pi = getElementCoords('node-pi');
+                    const llm = getElementCoords('node-llm');
+                    const display = getElementCoords('node-display');
+
+                    ctx.strokeStyle = '#9ca3af';
+                    ctx.lineWidth = 2;
+                    ctx.fillStyle = '#9ca3af';
+
+                    // Pi <-> LLM
+                    drawArrow(ctx, pi.x + pi.width / 2, pi.y, llm.x + llm.width / 2, llm.y + llm.height);
+                    drawArrow(ctx, llm.x + llm.width / 2, llm.y + llm.height, pi.x + pi.width / 2, pi.y);
+                    
+                    // Pi -> Display
+                    drawArrow(ctx, pi.x + pi.width / 2, pi.y + pi.height, display.x + display.width / 2, display.y);
+                };
+
+                const drawArrow = (ctx, fromx, fromy, tox, toy) => {
+                    const headlen = 10;
+                    const dx = tox - fromx;
+                    const dy = toy - fromy;
+                    const angle = Math.atan2(dy, dx);
+                    ctx.beginPath();
+                    ctx.moveTo(fromx, fromy);
+                    ctx.lineTo(tox, toy);
+                    ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+                    ctx.moveTo(tox, toy);
+                    ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+                    ctx.stroke();
+                };
+
+                const nodes = document.querySelectorAll('.diagram-node');
+                nodes.forEach(node => {
+                    node.addEventListener('mouseenter', () => {
+                        ctx.strokeStyle = '#fb923c';
+                        ctx.lineWidth = 4;
+                        drawLines();
+                    });
+                    node.addEventListener('mouseleave', () => {
+                        ctx.strokeStyle = '#9ca3af';
+                        ctx.lineWidth = 2;
+                        drawLines();
+                    });
+                });
+
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+            }
+        });
+    </script>
+</body>
+</html>
