@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MIS 689 Phaser Demo</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #game-container {
+      margin: 0 auto;
+      display: block;
+    }
+  </style>
+
+  <!-- Phaser 3 from official CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+</head>
+<body>
+  <h2>Phaser 3 Demo – Click the Logo</h2>
+  <p>Use this as a simple “interactive system” example for Week 12.</p>
+
+  <div id="game-container"></div>
+
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      parent: 'game-container',
+      backgroundColor: '#222222',
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: 0 },
+          debug: false
+        }
+      },
+      scene: {
+        preload: preload,
+        create: create,
+        update: update
+      }
+    };
+
+    let logo;
+    let infoText;
+
+    const game = new Phaser.Game(config);
+
+    function preload () {
+      // Tiny inline logo via data URL (so you don't need separate asset hosting)
+      this.load.image(
+        'logo',
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAB4klEQVR4nO2aP0sDQRDHv5QVEUVFRUUwWZoiIuL+/w8lHkIRbkIuWZiIg+ghvYDn8ApXNBHFqRSbVSSMzdON3NofM8JrjuzMzuzGZmZmbm3W7X6/V6f4Wq1Wu12u92uq5XKpVJZPJ5PJpPJ5PJpPJ5PJpPJ5PL5eLxeDwWCwWq1Wq9Xq9Xo+Hw+Hw+Hw+Hw+Hw+Hw+B0Gg0Gg0Gg0Go3G4/H4/H4/H4/P5fL5fL5fL5fL5fLJZLJZLJZLJZLJZLJZLJZLKZTKZTKZTKZTKZTKZTKZTKZfL5fL5fL5fL5fL5fL5fL5fL5fB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4PB4P/8C3bCjh8C3A78AAAAASUVORK5CYII='
+      );
+    }
+
+    function create () {
+      logo = this.physics.add.image(400, 300, 'logo');
+      logo.setVelocity(150, 120);
+      logo.setBounce(1, 1);
+      logo.setCollideWorldBounds(true);
+      logo.setInteractive({ useHandCursor: true });
+
+      infoText = this.add.text(16, 16, 'Click the logo to change its tint.', {
+        fontSize: '20px',
+        fill: '#ffffff'
+      });
+
+      logo.on('pointerdown', () => {
+        const randomColor = Phaser.Display.Color.RandomRGB().color;
+        logo.setTint(randomColor);
+        infoText.setText('Tint changed! Imagine this as a “decision” or policy update.');
+      });
+    }
+
+    function update () {
+      // No per-frame logic needed for this simple demo.
+    }
+  </script>
+</body>
+</html>
