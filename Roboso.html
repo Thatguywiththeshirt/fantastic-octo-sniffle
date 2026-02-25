@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chief AI Officer: The Roboso Case</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #0a0a0a; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { box-shadow: 0 10px 30px rgba(0,0,0,0.9); border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+<script>
+// ==========================================
+// GAME DATA & STATE
+// ==========================================
+const initialStats = { budget: 120, morale: 80, trust: 90, compliance: 100 };
+let stats = { ...initialStats };
+let currentScenario = 0;
+
+// The exact scenario array remains untouched
+const scenarios = [
+   {
+        title: "CRISIS: The 'Frequent Flyer' Algorithm",
+        text: "Finance wants to deploy an AI model to predict which patients will default on bills or miss appointments. It relies heavily on zip codes and employment history.",
+        choices: [
+            { text: "Audit the model for algorithmic Fairness before deploying.", impact: { budget: -20, morale: 0, trust: 10, compliance: 20 }, feedback: "The audit revealed massive socioeconomic bias. You corrected it. Finance is annoyed about the delay, but the ethics board is thrilled." },
+            { text: "Deploy it immediately. We need to cut financial losses.", impact: { budget: 30, morale: -10, trust: -40, compliance: -50 }, feedback: "The algorithm effectively redlined entire neighborhoods. A local news exposé destroys your reputation." },
+            { text: "Reject the AI entirely and hire more human financial counselors.", impact: { budget: -50, morale: 10, trust: 20, compliance: 0 }, feedback: "Expensive, but safe. The board grumbles about your lack of 'innovation', but the patients feel cared for." }
+        ]
+    },
+    {
+        title: "CRISIS: The Hallucinating Scribe",
+        text: "Doctors are exhausted by charting. A vendor offers a Generative AI tool that listens to appointments via microphone and writes the clinical notes automatically.",
+        choices: [
+            { text: "Buy the cheapest off-the-shelf LLM to save the budget.", impact: { budget: 10, morale: 30, trust: -30, compliance: -60 }, feedback: "The LLM 'hallucinated' nonexistent penicillin allergies for three patients. Medical malpractice suits are pending." },
+            { text: "Use a medical-grade AI scribe with mandatory 'Human-in-the-Loop' review.", impact: { budget: -40, morale: 20, trust: 10, compliance: 20 }, feedback: "Doctors grumble about having to proofread the AI, but it saves them hours, and the patient records are flawlessly accurate." },
+            { text: "Ban AI for charting. It's too risky.", impact: { budget: 0, morale: -40, trust: 0, compliance: 10 }, feedback: "Doctors are furious. Burnout skyrockets, and two of your best surgeons quit to join a tech-forward rival." }
+        ]
+    },
+    {
+        title: "OPPORTUNITY: The Silicon Valley Pitch",
+        text: "A major tech giant offers you $5 million for your database of patient scans to train their new foundation model. They promise they will 'anonymize' the data.",
+        choices: [
+            { text: "Take the money and run. We need the budget!", impact: { budget: 50, morale: -10, trust: -50, compliance: -60 }, feedback: "Turns out, 'anonymized' medical scans can be re-identified using rare diseases. You are on the front page of the Wall Street Journal." },
+            { text: "Demand strict Data Use Agreements and differential privacy, taking a smaller payout.", impact: { budget: 20, morale: 0, trust: 10, compliance: 20 }, feedback: "You made some money safely. The legal fees were high, but the patients' identities remain securely locked down." },
+            { text: "Decline the offer out of principle. Patient data is not for sale.", impact: { budget: -10, morale: 10, trust: 20, compliance: 10 }, feedback: "The moral high ground is lonely and unprofitable, but the Chief Privacy Officer buys you a coffee." }
+        ]
+    },
+	{
+        title: "CRISIS: The Skin Condition Avalanche",
+        text: "Patients are uploading thousands of rash photos daily to the trial app. The clinical team cannot manually review them all. How do we process these pixels securely?",
+        choices: [
+            { text: "Deploy a HIPAA-compliant Computer Vision model to triage the worst rashes for human review.", impact: { budget: -30, morale: 30, trust: 10, compliance: 20 }, feedback: "Textbook execution. The Computer Vision model accurately identifies severe cases, data remains encrypted, and doctors are relieved." },
+            { text: "Use a cheap, open-source Computer Vision API running on a public cloud server.", impact: { budget: 20, morale: 10, trust: -50, compliance: -80 }, feedback: "You saved money, but breached HIPAA. Patient skin photos are found indexed on a public search engine. The fines will be astronomical." },
+            { text: "Deploy Conversational AI to ask patients to describe their rashes in text, rather than uploading photos.", impact: { budget: -10, morale: -20, trust: -20, compliance: 10 }, feedback: "Patients don't know the medical terms for their rashes. The data is useless, and doctors are furious at the drop in clinical accuracy." }
+        ]
+    },
+    {
+        title: "CRISIS: The Depressed Telemetry",
+        text: "Your telemedicine platform added a new AI feature: it analyzes vocal tones to diagnose patient depression during routine calls. It is active by default.",
+        choices: [
+            { text: "Disable default activation. Require opt-in and strict Transparency.", impact: { budget: -10, morale: 0, trust: 20, compliance: 30 }, feedback: "Patients appreciate the honesty. Only 10% opt-in, but the data collected is legally and ethically sound." },
+            { text: "Keep it silent. It's better they don't know we're analyzing their mental state.", impact: { budget: 0, morale: -20, trust: -60, compliance: -50 }, feedback: "Patients discover the secret voice analysis. The ACLU files an injunction. You are deemed a privacy nightmare." },
+            { text: "Replace the AI with a standardized Conversational AI questionnaire.", impact: { budget: -20, morale: 10, trust: 10, compliance: 10 }, feedback: "A bit clunky, but a standard chatbot screening works without sounding like a dystopian spy novel." }
+        ]
+    },
+    {
+        title: "CRISIS: The Sepsis Oracle",
+        text: "A startup gifts you a 'Black Box' Deep Learning model that predicts sepsis 12 hours earlier than doctors. But it cannot explain *how* it makes the prediction.",
+        choices: [
+            { text: "Mandate that doctors follow the AI's predictions no matter what.", impact: { budget: 0, morale: -50, trust: -20, compliance: -40 }, feedback: "The AI was keying in on the font size of the lab reports, not actual labs. Patients are pumped full of unneeded antibiotics." },
+            { text: "Run it in the background as an unblinded trial, comparing it to doctor diagnoses.", impact: { budget: -30, morale: 10, trust: 10, compliance: 20 }, feedback: "Slow and expensive, but you discover the model's flaws safely before it hurts anyone. Peer-reviewed publication inbound!" },
+            { text: "Reject the black box. Require 'Explainable AI' only.", impact: { budget: 0, morale: 20, trust: 0, compliance: 10 }, feedback: "You miss out on a potentially life-saving tool, but the clinicians sleep better knowing they understand the math." }
+        ]
+    },
+    {
+        title: "CRISIS: The Melanoma Detector",
+        text: "Your new dermatology Computer Vision model is working great... but only for light-skinned patients. It's wildly inaccurate on darker skin tones due to training data bias.",
+        choices: [
+            { text: "Pull the model offline and spend budget to license diverse training datasets.", impact: { budget: -40, morale: 10, trust: 20, compliance: 30 }, feedback: "It hurt the bottom line, but the newly trained model is a beacon of algorithmic Fairness." },
+            { text: "Add a tiny disclaimer in the Terms of Service and keep it live.", impact: { budget: 0, morale: -30, trust: -50, compliance: -40 }, feedback: "A massive lawsuit regarding algorithmic discrimination hits your desk. The IRB shuts down the entire department." },
+            { text: "Restrict the AI to triage only, requiring a human to review every case.", impact: { budget: -20, morale: -20, trust: 10, compliance: 10 }, feedback: "It prevents harm, but the dermatologists are furious about the doubled workload. At least you aren't being sued." }
+        ]
+    },
+    {
+        title: "CRISIS: The Support Desk Mutiny",
+        text: "Call volumes for the new clinical trial are up 400%. Support staff are weeping in the breakroom and threatening to unionize. We need to automate the triage without violating patient trust.",
+        choices: [
+            { text: "Deploy a Conversational AI chatbot. Enforce strict Transparency so users know it's a bot.", impact: { budget: -20, morale: 40, trust: 10, compliance: 0 }, feedback: "A solid executive decision. The bot handles password resets and FAQ. Patients appreciate the honesty, and the staff cancels the mutiny." },
+            { text: "Deploy a bot, but name it 'Clinical Assistant Chad' to trick patients into thinking it's a real person.", impact: { budget: -10, morale: 20, trust: -50, compliance: -40 }, feedback: "Disaster. 'Chad' gives out wildly inaccurate medical advice. Patients find out he's a script, trust plummets, and the IRB issues a formal warning." },
+            { text: "Force patients to use a web form with OCR instead of chat or calls.", impact: { budget: -10, morale: -10, trust: -30, compliance: 0 }, feedback: "You used Document Intelligence (OCR) to solve a communication problem. It's clunky, patients hate it, and the support desk is still overwhelmed." }
+        ]
+    },
+    {
+        title: "CRISIS: The Paper Archive Purge",
+        text: "We acquired a 30-year-old rural clinic. Their basement is stuffed with handwritten medical records that must be digitized. Handwriting varies wildly across demographics.",
+        choices: [
+            { text: "Use Document Intelligence (OCR), but audit the model rigorously for demographic Fairness.", impact: { budget: -20, morale: 20, trust: 20, compliance: 20 }, feedback: "Expensive and slow, but necessary. The OCR digitizes the records, and your audits ensure elderly patients' cursive isn't systematically misread." },
+            { text: "Buy the cheapest off-the-shelf OCR tool and run it all overnight.", impact: { budget: 15, morale: 0, trust: -30, compliance: -40 }, feedback: "The OCR completely failed to read the handwriting of older demographics, resulting in lost medical histories. A massive failure in algorithmic Fairness." },
+            { text: "Reject AI. Hire 50 undergraduate interns to type it all out manually.", impact: { budget: -60, morale: -30, trust: 0, compliance: 0 }, feedback: "It costs a fortune and takes a year. The interns are miserable, the budget is destroyed, and the Board questions why they hired a Chief AI Officer." }
+        ]
+    },
+    {
+        title: "PITCH: The 'Magic' AI Scribe",
+        text: "A flashy vendor pitches an LLM that listens to patient visits via microphone and writes clinical notes instantly. They claim it has a '99% accuracy rate' and requires no oversight.",
+        choices: [
+            { text: "Implement it, but mandate a 'Human-in-the-Loop' workflow where doctors must approve all notes.", impact: { budget: -20, morale: 10, trust: 10, compliance: 20 }, feedback: "Doctors complain about proofreading, but it still saves them time. Good thing, too—the AI occasionally hallucinates medications, which the doctors catch." },
+            { text: "Turn it on fully autonomous mode. Let doctors go home early!", impact: { budget: 10, morale: 40, trust: -40, compliance: -60 }, feedback: "The LLM hallucinates a penicillin allergy for a patient who doesn't have one. A critical surgery is delayed. The Reliability & Safety failure is catastrophic." },
+            { text: "Ban generative AI for charting entirely. It's a fad.", impact: { budget: 0, morale: -40, trust: 10, compliance: 10 }, feedback: "Doctors are furious. Burnout skyrockets as they spend 3 hours a night typing notes. Two of your best surgeons quit to join a tech-forward rival clinic." }
+        ]
+    },
+    {
+        title: "MANDATE: The 'Frequent Flyer' Algorithm",
+        text: "Finance wants an AI to predict which trial participants will drop out early, based heavily on zip codes, income, and missed appointments, to stop wasting resources on them.",
+        choices: [
+            { text: "Audit the model for bias. Use the AI to flag patients who need *more* support (e.g., travel vouchers).", impact: { budget: -40, morale: 20, trust: 30, compliance: 20 }, feedback: "You flipped the script. Instead of punishing vulnerable patients, you used AI to allocate resources equitably. Finance hates the cost, but the ethics board loves you." },
+            { text: "Deploy it as requested. We have to protect the bottom line.", impact: { budget: 40, morale: -20, trust: -60, compliance: -50 }, feedback: "The algorithm effectively redlines entire lower-income neighborhoods, excluding them from life-saving trials. A medical journal publishes a scathing exposé on your 'bias engine'." },
+            { text: "Manually review every patient flagged by the system before dropping them.", impact: { budget: -20, morale: -30, trust: 10, compliance: 10 }, feedback: "You avoided a bias disaster, but you turned your clinical coordinators into administrative drones. Morale plummets under the crushing workload." }
+        ]
+    },
+    {
+        title: "OPPORTUNITY: The Tech Giant's Bribe",
+        text: "A massive tech company offers Roboso Medical $5 million to train their new foundation model on our 'anonymized' trial data. The CFO is practically begging you to sign.",
+        choices: [
+            { text: "Demand strict Differential Privacy, explicit patient opt-ins, and a seat on their ethics board.", impact: { budget: 40, morale: 0, trust: 20, compliance: 30 }, feedback: "The tech company grumbles and lowers the payout, but you secured the data and set a gold standard for Privacy & Security. A masterful negotiation." },
+            { text: "Sign the contract as-is. 'Anonymized' means safe, right?", impact: { budget: 80, morale: -10, trust: -70, compliance: -80 }, feedback: "Wrong. Researchers easily de-anonymize the data by cross-referencing rare diseases with public records. You sold out your patients, and the lawsuits will bankrupt the clinic." },
+            { text: "Refuse completely. Patient data is not a commodity to be sold.", impact: { budget: -20, morale: 10, trust: 30, compliance: 10 }, feedback: "The moral high ground is lonely. The CFO is furious about the lost revenue and slashes your department's budget, but your conscience is clean." }
+        ]
+    }
+];
+
+// ==========================================
+// UTILITY: Get Dynamic Colors for Stats
+// ==========================================
+function getStatColor(value) {
+    if (value <= 15) return '#ff1744'; // Danger Red
+    if (value <= 35) return '#ffea00'; // Warning Yellow
+    return '#00e676'; // Healthy Green
+}
+
+// ==========================================
+// SCENE 1: TITLE CARD
+// ==========================================
+class TitleScene extends Phaser.Scene {
+    constructor() { super('TitleScene'); }
+    create() {
+        this.cameras.main.fadeIn(1000, 0, 0, 0);
+        this.add.text(400, 200, "THE ROBOSO CASE", { fontSize: '48px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+        this.add.text(400, 260, "A Chief AI Officer Simulator", { fontSize: '24px', fill: '#00e676' }).setOrigin(0.5);
+
+        let startBtn = this.add.rectangle(400, 400, 250, 60, 0x1976d2).setInteractive({ useHandCursor: true });
+        startBtn.setStrokeStyle(2, 0x42a5f5);
+        this.add.text(400, 400, "START CAREER", { fontSize: '24px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        startBtn.on('pointerover', () => { 
+            startBtn.setFillStyle(0x1e88e5); 
+            this.tweens.add({ targets: startBtn, scaleX: 1.05, scaleY: 1.05, duration: 100 });
+        });
+        startBtn.on('pointerout', () => { 
+            startBtn.setFillStyle(0x1976d2); 
+            this.tweens.add({ targets: startBtn, scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        startBtn.on('pointerdown', () => {
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => { this.scene.start('IntroScene'); });
+        });
+    }
+}
+
+// ==========================================
+// SCENE 2: INTRO / BRIEFING
+// ==========================================
+class IntroScene extends Phaser.Scene {
+    constructor() { super('IntroScene'); }
+    create() {
+        this.cameras.main.fadeIn(500, 0, 0, 0);
+        let introText = "Welcome to Roboso Medical Group.\n\n" +
+            "The Board of Directors has appointed you as the new Chief AI Officer. " +
+            "Your mandate is to modernize our clinics using artificial intelligence, but healthcare is a minefield.\n\n" +
+            "You must balance four Key Performance Indicators (KPIs):\n" +
+            "• BUDGET: Don't bankrupt us.\n" +
+            "• MORALE: Keep the staff from quitting.\n" +
+            "• TRUST: Don't alienate our patients.\n" +
+            "• COMPLIANCE: Keep the HIPAA auditors and the IRB away.\n\n" +
+            "If any of these metrics drop to zero, you will be terminated immediately. Good luck.";
+
+        this.add.text(400, 80, "EXECUTIVE BRIEFING", { fontSize: '28px', fill: '#ff9800', fontStyle: 'bold' }).setOrigin(0.5);
+        this.add.text(400, 300, introText, { fontSize: '18px', fill: '#e0e0e0', align: 'left', wordWrap: { width: 650 }, lineSpacing: 10 }).setOrigin(0.5);
+
+        let ackBtn = this.add.rectangle(400, 520, 300, 50, 0x388e3c).setInteractive({ useHandCursor: true });
+        ackBtn.setStrokeStyle(2, 0x66bb6a);
+        this.add.text(400, 520, "I ACCEPT THE RISKS", { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        ackBtn.on('pointerover', () => { 
+            ackBtn.setFillStyle(0x43a047); 
+            this.tweens.add({ targets: ackBtn, scaleX: 1.05, scaleY: 1.05, duration: 100 });
+        });
+        ackBtn.on('pointerout', () => { 
+            ackBtn.setFillStyle(0x388e3c); 
+            this.tweens.add({ targets: ackBtn, scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        ackBtn.on('pointerdown', () => {
+            stats = { ...initialStats };
+            currentScenario = 0;
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => { this.scene.start('GameScene'); });
+        });
+    }
+}
+
+// ==========================================
+// SCENE 3: MAIN GAME LOOP
+// ==========================================
+class GameScene extends Phaser.Scene {
+    constructor() { super('GameScene'); }
+
+    create() {
+        this.cameras.main.fadeIn(500, 0, 0, 0);
+        
+        // Header Background
+        this.add.rectangle(400, 40, 800, 80, 0x222222).setStrokeStyle(1, 0x444444);
+        
+        // Month Tracker
+        this.monthTxt = this.add.text(400, 15, `Quarter ${currentScenario + 1} of ${scenarios.length}`, { fontSize: '14px', fill: '#888888', fontStyle: 'italic' }).setOrigin(0.5);
+
+        // Stats UI Objects
+        this.budgetTxt = this.add.text(80, 45, `Budget: ${stats.budget}`, { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.moraleTxt = this.add.text(280, 45, `Morale: ${stats.morale}`, { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.trustTxt = this.add.text(500, 45, `Trust: ${stats.trust}`, { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.complianceTxt = this.add.text(720, 45, `Compliance: ${stats.compliance}`, { fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5);
+
+        this.updateStatsUI();
+        this.contentGroup = this.add.group();
+        this.loadScenario();
+    }
+
+    updateStatsUI() {
+        this.budgetTxt.setText(`Budget: ${stats.budget}`).setColor(getStatColor(stats.budget));
+        this.moraleTxt.setText(`Morale: ${stats.morale}`).setColor(getStatColor(stats.morale));
+        this.trustTxt.setText(`Trust: ${stats.trust}`).setColor(getStatColor(stats.trust));
+        this.complianceTxt.setText(`Compliance: ${stats.compliance}`).setColor(getStatColor(stats.compliance));
+        this.monthTxt.setText(`Project Phase ${currentScenario + 1} of ${scenarios.length}`);
+    }
+
+    checkGameOver() {
+        if (stats.budget <= 0) return "You bankrupted the clinic.";
+        if (stats.morale <= 0) return "The staff went on strike.";
+        if (stats.trust <= 0) return "Patients fled to our competitors.";
+        if (stats.compliance <= 0) return "The FDA and HIPAA auditors shut us down.";
+        return null; 
+    }
+
+    loadScenario() {
+        this.contentGroup.clear(true, true);
+
+        if (currentScenario >= scenarios.length) {
+            this.cameras.main.fadeOut(800, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.scene.start('GameOverScene', { win: true, reason: "You navigated the AI mandates and kept the clinic alive." });
+            });
+            return;
+        }
+
+        const scenario = scenarios[currentScenario];
+
+        let title = this.add.text(400, 130, scenario.title, { fontSize: '24px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+        let desc = this.add.text(400, 200, scenario.text, { fontSize: '18px', fill: '#cccccc', align: 'center', wordWrap: { width: 700 }, lineSpacing: 5 }).setOrigin(0.5);
+        
+        this.contentGroup.addMultiple([title, desc]);
+
+        let startY = 320;
+        scenario.choices.forEach((choice, index) => {
+            // Group the background and text so they scale together nicely
+            let btnContainer = this.add.container(400, startY + (index * 90));
+            
+            let btnBg = this.add.rectangle(0, 0, 720, 75, 0x333333).setInteractive({ useHandCursor: true });
+            btnBg.setStrokeStyle(1, 0x555555);
+            let btnText = this.add.text(0, 0, choice.text, { fontSize: '16px', fill: '#e0e0e0', align: 'center', wordWrap: { width: 680 } }).setOrigin(0.5);
+            
+            btnContainer.add([btnBg, btnText]);
+
+            btnBg.on('pointerover', () => { 
+                btnBg.setFillStyle(0x444444); 
+                btnBg.setStrokeStyle(2, 0x1976d2); 
+                // Tween the whole container for that tactile pop
+                this.tweens.add({ targets: btnContainer, scaleX: 1.03, scaleY: 1.05, duration: 100 });
+            });
+            btnBg.on('pointerout', () => { 
+                btnBg.setFillStyle(0x333333); 
+                btnBg.setStrokeStyle(1, 0x555555); 
+                this.tweens.add({ targets: btnContainer, scaleX: 1, scaleY: 1, duration: 100 });
+            });
+            btnBg.on('pointerdown', () => {
+                this.handleChoice(choice);
+            });
+
+            this.contentGroup.add(btnContainer);
+        });
+    }
+
+    createFloatingText(x, y, value, textLabel) {
+        if (value === 0) return;
+        let color = value > 0 ? '#00e676' : '#ff1744';
+        let sign = value > 0 ? '+' : '';
+        let t = this.add.text(x, y + 20, `${sign}${value}`, { fontSize: '24px', fill: color, fontStyle: 'bold' }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: t,
+            y: y - 40,
+            alpha: 0,
+            duration: 2000,
+            ease: 'Power1',
+            onComplete: () => t.destroy()
+        });
+    }
+
+    handleChoice(choice) {
+        stats.budget += choice.impact.budget;
+        stats.morale += choice.impact.morale;
+        stats.trust += choice.impact.trust;
+        stats.compliance += choice.impact.compliance;
+        this.updateStatsUI();
+
+        let fatalReason = this.checkGameOver();
+        if (fatalReason) {
+            // Violent shake and red fade for getting fired
+            this.cameras.main.shake(800, 0.02);
+            this.cameras.main.fadeOut(1500, 100, 0, 0); 
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.scene.start('GameOverScene', { win: false, reason: fatalReason, feedback: choice.feedback });
+            });
+            return;
+        }
+
+        // Visual feedback based on overall net impact
+        let netImpact = choice.impact.budget + choice.impact.morale + choice.impact.trust + choice.impact.compliance;
+        if (netImpact >= 0) {
+            // Soft green flash of success
+            this.cameras.main.flash(300, 50, 200, 50, 0.2); 
+        } else {
+            // Soft red flash and a tiny bump indicating a poor choice
+            this.cameras.main.flash(300, 200, 50, 50, 0.3);
+            this.cameras.main.shake(250, 0.005); 
+        }
+
+        this.contentGroup.clear(true, true);
+
+        // Floating impact math
+        this.createFloatingText(80, 45, choice.impact.budget, "Budget");
+        this.createFloatingText(280, 45, choice.impact.morale, "Morale");
+        this.createFloatingText(500, 45, choice.impact.trust, "Trust");
+        this.createFloatingText(720, 45, choice.impact.compliance, "Compliance");
+
+        // Board Review text
+        let feedbackTitle = this.add.text(400, 220, "Board Review", { fontSize: '32px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+        let feedbackText = this.add.text(400, 310, choice.feedback, { fontSize: '22px', fill: '#cccccc', align: 'center', wordWrap: { width: 700 }, lineSpacing: 8 }).setOrigin(0.5);
+        
+        let continueBtn = this.add.rectangle(400, 480, 220, 60, 0x1976d2).setInteractive({ useHandCursor: true });
+        continueBtn.setStrokeStyle(2, 0x42a5f5);
+        let continueTxt = this.add.text(400, 480, "Next Quarter ->", { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        continueBtn.on('pointerover', () => { 
+            continueBtn.setFillStyle(0x1e88e5); 
+            this.tweens.add({ targets: continueBtn, scaleX: 1.05, scaleY: 1.05, duration: 100 });
+        });
+        continueBtn.on('pointerout', () => { 
+            continueBtn.setFillStyle(0x1976d2); 
+            this.tweens.add({ targets: continueBtn, scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        continueBtn.on('pointerdown', () => {
+            currentScenario++;
+            this.loadScenario();
+        });
+
+        this.contentGroup.addMultiple([feedbackTitle, feedbackText, continueBtn, continueTxt]);
+    }
+}
+
+// ==========================================
+// SCENE 4: GAME OVER / RESULTS
+// ==========================================
+class GameOverScene extends Phaser.Scene {
+    constructor() { super('GameOverScene'); }
+
+    init(data) {
+        this.isWin = data.win;
+        this.reason = data.reason;
+        this.feedback = data.feedback;
+    }
+
+    create() {
+        this.cameras.main.fadeIn(1000, 0, 0, 0);
+        let titleText = this.isWin ? "PROMOTED!" : "TERMINATED!";
+        let titleColor = this.isWin ? '#00e676' : '#ff1744';
+
+        this.add.text(400, 150, titleText, { fontSize: '56px', fill: titleColor, fontStyle: 'bold' }).setOrigin(0.5);
+        this.add.text(400, 240, this.reason, { fontSize: '24px', fill: '#ffffff', align: 'center', wordWrap: { width: 650 }, lineSpacing: 8 }).setOrigin(0.5);
+
+        if (this.feedback) {
+            this.add.text(400, 340, `Final Action:\n"${this.feedback}"`, { fontSize: '18px', fill: '#ffeb3b', fontStyle: 'italic', align: 'center', wordWrap: { width: 650 }, lineSpacing: 5 }).setOrigin(0.5);
+        }
+
+        let restartBtn = this.add.rectangle(400, 480, 250, 60, 0x333333).setInteractive({ useHandCursor: true });
+        restartBtn.setStrokeStyle(2, 0x555555);
+        this.add.text(400, 480, "PLAY AGAIN", { fontSize: '24px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        restartBtn.on('pointerover', () => { 
+            restartBtn.setFillStyle(0x444444); 
+            this.tweens.add({ targets: restartBtn, scaleX: 1.05, scaleY: 1.05, duration: 100 });
+        });
+        restartBtn.on('pointerout', () => { 
+            restartBtn.setFillStyle(0x333333); 
+            this.tweens.add({ targets: restartBtn, scaleX: 1, scaleY: 1, duration: 100 });
+        });
+        restartBtn.on('pointerdown', () => {
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            this.cameras.main.once('camerafadeoutcomplete', () => { this.scene.start('TitleScene'); });
+        });
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#0a0a0a',
+    scene: [TitleScene, IntroScene, GameScene, GameOverScene]
+};
+const game = new Phaser.Game(config);
+</script>
+</body>
+</html>
