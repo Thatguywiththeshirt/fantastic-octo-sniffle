@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue ML Designer Simulator</title>
+    <style>
+        :root {
+            --Blue-blue: #0078D4;
+            --Blue-dark: #1E1E1E;
+            --Blue-bg: #111111;
+            --panel-bg: #252526;
+            --text-main: #CCCCCC;
+            --text-title: #FFFFFF;
+            --success: #107C10;
+            --error: #D13438;
+            --warning: #FFB900;
+        }
+
+        body { margin: 0; padding: 0; background-color: var(--Blue-bg); color: var(--text-main); font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        .top-bar { position: absolute; top: 0; left: 0; right: 0; height: 60px; background: #000; border-bottom: 2px solid var(--Blue-blue); display: flex; justify-content: space-between; align-items: center; padding: 0 30px; z-index: 10; }
+        .branding { font-size: 20px; font-weight: bold; color: var(--text-title); }
+        .budget-display { font-size: 22px; font-weight: bold; color: #00e676; background: #111; padding: 8px 15px; border-radius: 6px; border: 1px solid #333; }
+        .budget-danger { color: var(--error); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .workspace { display: flex; width: 100%; margin-top: 60px; height: calc(100vh - 60px); }
+
+        .toolbox { width: 320px; background: var(--panel-bg); border-right: 1px solid #444; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .toolbox-section h3 { margin: 0 0 10px 0; color: var(--Blue-blue); font-size: 14px; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        
+        .draggable-node { background: #333; border-left: 4px solid #555; padding: 12px; margin-bottom: 8px; border-radius: 4px; cursor: grab; font-size: 14px; color: #fff; transition: background 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .draggable-node:hover { background: #444; }
+        .draggable-node:active { cursor: grabbing; }
+        
+        .node-compute { border-left-color: #9c27b0; }
+        .node-data { border-left-color: #00bcd4; }
+        .node-algo { border-left-color: #4caf50; }
+        .node-eval { border-left-color: #ff9800; }
+
+        .canvas { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 30px; background: radial-gradient(circle, #222 1px, transparent 1px); background-size: 20px 20px; overflow-y: auto; }
+        
+        .ticket-card { background: rgba(0, 120, 212, 0.1); border: 1px solid var(--Blue-blue); padding: 15px; border-radius: 8px; margin-bottom: 30px; width: 80%; text-align: center; }
+        .ticket-card h2 { margin: 0 0 10px 0; color: var(--text-title); font-size: 20px; }
+
+        .pipeline-flow { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        
+        .drop-zone { width: 280px; height: 50px; background: rgba(255,255,255,0.05); border: 2px dashed #666; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #666; font-weight: bold; transition: all 0.2s; position: relative; }
+        .drop-zone.drag-over { background: rgba(0, 120, 212, 0.2); border-color: var(--Blue-blue); color: var(--Blue-blue); }
+        .drop-zone .draggable-node { width: 95%; margin: 0; box-sizing: border-box; cursor: pointer; padding: 8px; } 
+        .drop-zone .draggable-node::after { content: ' (Click to remove)'; font-size: 10px; color: #aaa; display: block; margin-top: 2px; }
+        
+        .arrow { color: #666; font-size: 24px; font-weight: bold; margin: -5px 0; }
+
+        .run-btn { margin-top: 20px; background: var(--success); color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 124, 16, 0.4); transition: transform 0.1s, background 0.2s; margin-bottom: 20px; }
+        .run-btn:hover { background: #0c610c; transform: scale(1.05); }
+
+        .console { width: 350px; background: #000; border-left: 1px solid #444; padding: 20px; font-family: 'Consolas', monospace; font-size: 13px; display: flex; flex-direction: column; }
+        .console h3 { margin: 0 0 15px 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .terminal-output { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        
+        .log-sys { color: #888; }
+        .log-cost { color: #ffb74d; }
+        .log-err { color: #ff5252; font-weight: bold; }
+        .log-warn { color: #ffeb3b; }
+        .log-succ { color: #69f0ae; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="branding">Blue ML Designer // AeroTerra Operations</div>
+        <div class="budget-display" id="budget-ui">Blue Credits: $2,500</div>
+    </div>
+
+    <div class="workspace">
+        <div class="toolbox" id="toolbox">
+            <div class="toolbox-section">
+                <h3>1. Compute Targets</h3>
+                <div class="draggable-node node-compute" draggable="true" id="c_local" data-type="compute" data-cost="0">Local Desktop ($0)</div>
+                <div class="draggable-node node-compute" draggable="true" id="c_vm" data-type="compute" data-cost="200">Virtual Machine ($200)</div>
+                <div class="draggable-node node-compute" draggable="true" id="c_instance" data-type="compute" data-cost="50">Compute Instance ($50)</div>
+            </div>
+            
+            <div class="toolbox-section">
+                <h3>2. Data Preparation</h3>
+                <div class="draggable-node node-data" draggable="true" id="d_tabular" data-type="data">Register Tabular/File Data</div>
+                <div class="draggable-node node-data" draggable="true" id="d_split" data-type="data">Split Data (Train/Test)</div>
+                <div class="draggable-node node-data" draggable="true" id="d_norm" data-type="data">Normalize / Scale Features</div>
+                <div class="draggable-node node-data" draggable="true" id="d_eng" data-type="data">Feature Engineering</div>
+            </div>
+
+            <div class="toolbox-section">
+                <h3>3. ML Algorithms</h3>
+                <div class="draggable-node node-algo" draggable="true" id="a_class" data-type="algo">Two-Class Classification</div>
+                <div class="draggable-node node-algo" draggable="true" id="a_regress" data-type="algo">Regression</div>
+                <div class="draggable-node node-algo" draggable="true" id="a_cluster" data-type="algo">Clustering</div>
+                <div class="draggable-node node-algo" draggable="true" id="a_automl" data-type="algo">Automated ML</div>
+            </div>
+
+            <div class="toolbox-section">
+                <h3>4. Evaluation & Output</h3>
+                <div class="draggable-node node-eval" draggable="true" id="e_acc" data-type="eval">Precision, Accuracy, F-Score</div>
+                <div class="draggable-node node-eval" draggable="true" id="e_rmse" data-type="eval">RMSE, Coefficient of Det.</div>
+                <div class="draggable-node node-eval" draggable="true" id="e_score" data-type="eval">Score Model</div>
+                <div class="draggable-node node-eval" draggable="true" id="e_infer" data-type="eval">Create Inference Pipeline</div>
+            </div>
+        </div>
+
+        <div class="canvas">
+            <div class="ticket-card">
+                <h2>Ticket <span id="t-num">1</span> of 8: <span id="t-id">#TKT-001</span></h2>
+                <p id="t-desc">Loading scenario...</p>
+                <p style="color:var(--Blue-blue); font-size:14px; margin-bottom: 0;"><strong>Target Accuracy/Confidence: > 85%</strong></p>
+            </div>
+
+            <div class="pipeline-flow">
+                <div class="drop-zone" id="dz-compute" data-accept="compute">Drop Compute Target Here</div>
+                <div class="arrow">↓</div>
+                <div class="drop-zone" id="dz-data" data-accept="data">Drop Data Prep Here</div>
+                <div class="arrow">↓</div>
+                <div class="drop-zone" id="dz-algo" data-accept="algo">Drop Algorithm Here</div>
+                <div class="arrow">↓</div>
+                <div class="drop-zone" id="dz-eval" data-accept="eval">Drop Evaluation Here</div>
+            </div>
+
+            <button class="run-btn" onclick="executePipeline()">▶ RUN PIPELINE</button>
+        </div>
+
+        <div class="console">
+            <h3>Terminal Output</h3>
+            <div class="terminal-output" id="terminal">
+                <span class="log-sys">AeroTerra OS initializing...</span>
+                <span class="log-sys">Awaiting pipeline configuration.</span>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let budget = 2500;
+    let currentLevel = 0;
+
+    const scenarios = [
+        {
+            id: "TKT-001",
+            desc: "The marketing team wants to analyze social media mentions to determine if a post is generally Positive or Negative.",
+            algo: "a_class", eval: "e_acc", optimalData: "d_split",
+            dataHint: "The model is overfitting. You need to split the data to evaluate it on an unseen testing set."
+        },
+        {
+            id: "TKT-002",
+            desc: "We have a massive database of user activity logs. We want to group users by similarity, but one data column (Income) has massive numbers that are skewing the math.",
+            algo: "a_cluster", eval: "e_score", optimalData: "d_norm",
+            dataHint: "A single feature is biasing the entire model. Bring all the numbers down to a similar scale."
+        },
+        {
+            id: "TKT-003",
+            desc: "Predict the exact bandwidth usage (in Mbps) for our servers next month based on historical timestamp data.",
+            algo: "a_regress", eval: "e_rmse", optimalData: "d_eng",
+            dataHint: "The raw data isn't predictive enough. Try engineering new features from the existing timestamps."
+        },
+        {
+            id: "TKT-004",
+            desc: "The executives want us to use Automated ML to find the best model for customer churn. Ensure the dataset format is correct for AutoML, and that we can explain the model's choices.",
+            algo: "a_automl", eval: "e_acc", optimalData: "d_tabular",
+            dataHint: "Automated ML requires datasets to be registered in a specific way. Make sure you use File or Tabular datasets."
+        },
+        {
+            id: "TKT-005",
+            desc: "We have a fully trained regression model predicting server heat levels. Now we need to prepare the model so developers can consume it via a REST API web service.",
+            algo: "a_regress", eval: "e_infer", optimalData: "d_eng",
+            dataHint: "Your evaluation method is wrong. You've already trained it; now you must convert it into something deployable."
+        },
+        {
+            id: "TKT-006",
+            desc: "We are predicting if a customer will buy a premium subscription (Yes/No). The 'Total Spent' column has huge numbers, while 'Logins' is just 1-5. It's causing massive bias.",
+            algo: "a_class", eval: "e_acc", optimalData: "d_norm",
+            dataHint: "The 'Total Spent' numbers are dwarfing the other features. You must prevent this single feature from biasing the model."
+        },
+        {
+            id: "TKT-007",
+            desc: "We need to predict the exact price of new cloud service tiers. The model is built, but we need to prove its error margins to Finance using standard metrics on unseen data.",
+            algo: "a_regress", eval: "e_rmse", optimalData: "d_split",
+            dataHint: "You can't prove error margins if you train and test on the exact same dataset!"
+        },
+        {
+            id: "TKT-008",
+            desc: "We grouped our unlabeled customer feedback logs into 5 distinct profiles. How do we test if new, incoming logs accurately map to these profiles?",
+            algo: "a_cluster", eval: "e_score", optimalData: "d_norm",
+            dataHint: "Grouping unlabeled data requires normalization so long logs don't skew the groups."
+        }
+    ];
+
+    const draggables = document.querySelectorAll('.draggable-node');
+    const dropZones = document.querySelectorAll('.drop-zone');
+
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', draggable.id);
+            draggable.classList.add('dragging');
+        });
+        draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
+    });
+
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault(); 
+            const draggedId = e.dataTransfer.getData('text/plain');
+            const draggedEl = document.getElementById(draggedId);
+            if (draggedEl && draggedEl.dataset.type === zone.dataset.accept) {
+                zone.classList.add('drag-over');
+            }
+        });
+
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            const id = e.dataTransfer.getData('text/plain');
+            const element = document.getElementById(id);
+
+            if (element && element.dataset.type === zone.dataset.accept) {
+                const clone = element.cloneNode(true);
+                clone.id = id + "_clone";
+                clone.draggable = false; 
+                
+                clone.addEventListener('click', () => {
+                    zone.innerHTML = `Drop ${zone.dataset.accept.charAt(0).toUpperCase() + zone.dataset.accept.slice(1)} Here`;
+                    zone.removeAttribute('data-filled');
+                });
+
+                zone.innerHTML = '';
+                zone.appendChild(clone);
+                zone.dataset.filled = id; 
+            } else {
+                logTerminal(`Type Error: Cannot place ${element ? element.dataset.type : 'unknown'} in a ${zone.dataset.accept} slot.`, 'log-err');
+            }
+        });
+    });
+
+    function loadTicket() {
+        if (currentLevel >= scenarios.length) {
+            document.getElementById('t-num').innerText = currentLevel;
+            document.getElementById('t-id').innerText = "SYSTEM COMPLETE";
+            document.getElementById('t-desc').innerText = "All models deployed successfully. You are an Blue ML Master.";
+            return;
+        }
+        let scn = scenarios[currentLevel];
+        document.getElementById('t-num').innerText = currentLevel + 1;
+        document.getElementById('t-id').innerText = scn.id;
+        document.getElementById('t-desc').innerText = scn.desc;
+        
+        dropZones.forEach(z => {
+            z.innerHTML = `Drop ${z.dataset.accept.charAt(0).toUpperCase() + z.dataset.accept.slice(1)} Here`;
+            delete z.dataset.filled;
+        });
+    }
+
+    function logTerminal(msg, type = "log-sys") {
+        const term = document.getElementById('terminal');
+        const span = document.createElement('span');
+        span.className = type;
+        span.innerText = `> ${msg}`;
+        term.appendChild(span);
+        term.scrollTop = term.scrollHeight;
+    }
+
+    function updateBudget(cost) {
+        budget -= cost;
+        const bUI = document.getElementById('budget-ui');
+        bUI.innerText = `Blue Credits: $${budget}`;
+        
+        if (budget <= 500) bUI.classList.add('budget-danger');
+        
+        if (budget <= 0) {
+            logTerminal("CRITICAL: Blue compute budget exhausted. Pipeline locked.", "log-err");
+            alert("GAME OVER! You ran out of Blue Credits. Refresh to try again.");
+        }
+    }
+
+    function executePipeline() {
+        if (budget <= 0) return;
+
+        let scn = scenarios[currentLevel];
+        
+        let compute = document.getElementById('dz-compute').dataset.filled;
+        let data = document.getElementById('dz-data').dataset.filled;
+        let algo = document.getElementById('dz-algo').dataset.filled;
+        let eval = document.getElementById('dz-eval').dataset.filled;
+
+        if (!compute) {
+            logTerminal("ERROR: No compute target selected.", "log-err"); return;
+        }
+        let cost = parseInt(document.getElementById(compute).dataset.cost);
+        
+        if (compute === 'c_local') {
+            logTerminal("Running locally... FAILED. Dataset is too large for Local Desktop.", "log-err");
+            return; 
+        }
+        
+        logTerminal(`Spinning up compute. Billing: -$${cost}...`, "log-cost");
+        updateBudget(cost);
+
+        if (!data || !algo || !eval) {
+            logTerminal("COMPILATION ERROR: Pipeline is missing nodes. Run failed.", "log-err");
+            return;
+        }
+
+        setTimeout(() => {
+            // Algorithm Validation
+            if (algo !== scn.algo) {
+                logTerminal(`COMPILATION ERROR: Wrong algorithm type selected. Read the ticket carefully.`, "log-err");
+                return;
+            }
+
+            // Evaluation Validation
+            if (eval !== scn.eval) {
+                logTerminal(`COMPILATION ERROR: Mismatched evaluation metric or output for this pipeline phase.`, "log-err");
+                return;
+            }
+
+            // Accuracy Iteration Loop
+            if (data !== scn.optimalData) {
+                let baseAcc = Math.floor(Math.random() * (68 - 42 + 1)) + 42; 
+                logTerminal(`Pipeline executed. Model trained.`, "log-sys");
+                logTerminal(`Accuracy/Confidence Score: ${baseAcc}% (Target: > 85%)`, "log-warn");
+                logTerminal(`HINT: ${scn.dataHint}`, "log-warn");
+                return;
+            }
+
+            let highAcc = Math.floor(Math.random() * (99 - 88 + 1)) + 88; 
+            logTerminal(`Pipeline executed. Model trained.`, "log-sys");
+            logTerminal(`Accuracy/Confidence Score: ${highAcc}%`, "log-succ");
+            logTerminal(`TICKET CLOSED! Deploying to production...`, "log-succ");
+            logTerminal(`-------------------------`, "log-sys");
+            
+            setTimeout(() => {
+                currentLevel++;
+                loadTicket();
+            }, 2500);
+
+        }, 800); 
+    }
+
+    loadTicket();
+
+</script>
+
+</body>
+</html>

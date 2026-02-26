@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonoWave Data Factory</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --panel: #252526;
+            --border: #333;
+            --azure: #0078D4;
+            --text: #d4d4d4;
+            --success: #4CAF50;
+            --danger: #f44336;
+            --warning: #ffeb3b;
+            --belt: #111;
+        }
+
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* HEADER */
+        .header { background: #000; border-bottom: 2px solid var(--azure); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .branding { font-size: 20px; font-weight: bold; color: #fff; }
+        .branding span { color: var(--azure); }
+        .controls { display: flex; align-items: center; gap: 20px; }
+        .compliance-toggle { display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--warning); background: rgba(255, 235, 59, 0.1); padding: 5px 10px; border-radius: 4px; border: 1px dashed var(--warning); cursor: pointer; }
+        
+        /* MAIN LAYOUT */
+        .workspace { display: flex; flex: 1; overflow: hidden; }
+
+        /* LEFT: TOOLBOX */
+        .toolbox { width: 300px; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 15px; }
+        .tool-category { font-size: 12px; color: #888; text-transform: uppercase; margin: 15px 0 10px; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        
+        .node { background: #333; border-left: 4px solid var(--azure); padding: 10px; margin-bottom: 8px; border-radius: 4px; cursor: grab; font-size: 13px; color: #fff; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .node:hover { background: #444; }
+        .node:active { cursor: grabbing; }
+        .node-cost { font-size: 11px; color: #aaa; font-family: monospace; }
+        
+        .type-lang { border-left-color: #9c27b0; }
+        .type-speech { border-left-color: #00bcd4; }
+        .type-comp { border-left-color: var(--warning); }
+
+        /* MIDDLE: FACTORY FLOOR */
+        .factory { flex: 1; padding: 20px; display: flex; flex-direction: column; position: relative; background: radial-gradient(circle, #2a2a2a 1px, transparent 1px); background-size: 20px 20px; }
+        
+        .ticket { background: rgba(0, 120, 212, 0.1); border: 1px solid var(--azure); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .ticket h2 { margin: 0 0 10px 0; color: #fff; font-size: 18px; }
+        .ticket p { margin: 0; font-size: 14px; color: #ccc; line-height: 1.4; }
+
+        .assembly-line { display: flex; align-items: center; justify-content: space-between; background: var(--belt); padding: 30px 20px; border-radius: 8px; border: 2px solid #444; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        
+        /* Animated Conveyor Belt Background */
+        .assembly-line::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient( 90deg, transparent, transparent 40px, rgba(255,255,255,0.03) 40px, rgba(255,255,255,0.03) 80px ); animation: beltMove 2s linear infinite; pointer-events: none; z-index: 0; }
+        @keyframes beltMove { from { background-position: 0 0; } to { background-position: 80px 0; } }
+
+        .machine-slot { width: 160px; height: 80px; background: rgba(255,255,255,0.05); border: 2px dashed #666; border-radius: 6px; z-index: 1; display: flex; justify-content: center; align-items: center; text-align: center; color: #666; font-weight: bold; transition: 0.2s; position: relative; }
+        .machine-slot.drag-over { background: rgba(0, 120, 212, 0.2); border-color: var(--azure); }
+        .machine-slot .node { width: 90%; margin: 0; font-size: 12px; cursor: pointer; }
+        
+        .endpoint { width: 120px; height: 120px; background: #222; border: 3px solid #555; border-radius: 50%; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: 12px; font-weight: bold; color: #888; }
+        .endpoint.source { border-color: var(--azure); color: var(--azure); }
+        .endpoint.dest { border-color: var(--success); color: var(--success); }
+
+        /* The Data Packet */
+        .data-packet { width: 30px; height: 30px; background: #fff; border-radius: 4px; position: absolute; left: 45px; top: 50%; transform: translateY(-50%); z-index: 2; box-shadow: 0 0 10px #fff; display: none; transition: left 1s linear, background 0.3s; }
+        .packet-jammed { animation: shake 0.2s infinite, pulseRed 0.5s infinite; }
+        @keyframes shake { 0% { transform: translateY(-50%) translateX(-2px); } 50% { transform: translateY(-50%) translateX(2px); } 100% { transform: translateY(-50%) translateX(0); } }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 10px var(--danger); background: var(--danger); } 50% { box-shadow: 0 0 20px var(--danger); background: #fff; } 100% { box-shadow: 0 0 10px var(--danger); background: var(--danger); } }
+
+        .controls-row { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+        .run-btn { background: var(--success); color: #fff; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3); transition: 0.2s; }
+        .run-btn:hover { background: #388E3C; transform: translateY(-2px); }
+
+        /* RIGHT: CONSOLE & INVOICE */
+        .right-panel { width: 350px; background: #000; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+        
+        .invoice-panel { padding: 15px; border-bottom: 1px solid #333; background: #111; }
+        .invoice-title { font-size: 14px; color: #aaa; text-transform: uppercase; margin-bottom: 10px; font-weight: bold; }
+        .stars { font-size: 24px; color: #444; letter-spacing: 5px; margin-bottom: 10px; }
+        .star-earned { color: var(--warning); text-shadow: 0 0 10px var(--warning); }
+        .cost-display { font-size: 20px; font-weight: bold; color: var(--success); }
+
+        .terminal { flex: 1; padding: 15px; font-family: 'Consolas', monospace; font-size: 13px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .t-sys { color: #888; }
+        .t-err { color: var(--danger); font-weight: bold; }
+        .t-succ { color: var(--success); font-weight: bold; }
+        .t-warn { color: var(--warning); }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="branding">SonoWave <span>Data Factory</span></div>
+        <div class="controls">
+            <div class="compliance-toggle" id="comp-toggle" onclick="toggleCompliance()">
+                🛡️ Enterprise Compliance: [OFF]
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        
+        <div class="toolbox" id="toolbox">
+            <div class="tool-category">Language Workloads</div>
+            <div class="node type-lang" draggable="true" id="lang_sentiment" data-cost="10">Sentiment Analysis <span class="node-cost">$10</span></div>
+            <div class="node type-lang" draggable="true" id="lang_keyphrase" data-cost="10">Key Phrase Extr. <span class="node-cost">$10</span></div>
+            <div class="node type-lang" draggable="true" id="lang_ner" data-cost="10">Named Entity (NER) <span class="node-cost">$10</span></div>
+            <div class="node type-lang" draggable="true" id="lang_clu" data-cost="20">Conversational (CLU) <span class="node-cost">$20</span></div>
+            <div class="node type-lang" draggable="true" id="lang_trans" data-cost="15">Translator <span class="node-cost">$15</span></div>
+
+            <div class="tool-category">Speech Workloads</div>
+            <div class="node type-speech" draggable="true" id="speech_rt" data-cost="5">Real-Time STT <span class="node-cost">$5</span></div>
+            <div class="node type-speech" draggable="true" id="speech_batch" data-cost="25">Batch STT <span class="node-cost">$25</span></div>
+            <div class="node type-speech" draggable="true" id="speech_tts_std" data-cost="5">Standard TTS <span class="node-cost">$5</span></div>
+            <div class="node type-speech" draggable="true" id="speech_tts_neu" data-cost="30">Custom Neural Voice <span class="node-cost">$30</span></div>
+
+            <div class="tool-category">Compliance Nodes</div>
+            <div class="node type-comp" draggable="true" id="comp_pii" data-cost="15">PII Redaction <span class="node-cost">$15</span></div>
+            <div class="node type-comp" draggable="true" id="comp_ms" data-cost="0">MS Approval Token <span class="node-cost">$0</span></div>
+        </div>
+
+        <div class="factory">
+            <div class="ticket">
+                <h2>Level <span id="lvl-id">1</span>: <span id="s-title">The French Backlog</span></h2>
+                <p id="s-desc">We have a massive backlog of highly technical support phone calls recorded in France (1,000 hours of audio). We need English text transcripts.</p>
+            </div>
+
+            <div class="assembly-line" id="belt">
+                <div class="endpoint source" id="source-hopper">
+                    INPUT HOPPER
+                    <div style="font-size:10px; color:#fff; margin-top:5px;" id="s-input">[Audio: Massive]<br>French</div>
+                </div>
+                
+                <div class="machine-slot" data-slot="1">Drop Machine</div>
+                <div class="machine-slot" data-slot="2">Drop Machine</div>
+                <div class="machine-slot" data-slot="3">Drop Machine</div>
+                <div class="machine-slot" data-slot="4">Drop Machine</div>
+
+                <div class="endpoint dest" id="target-hopper">
+                    DASHBOARD
+                    <div style="font-size:10px; color:#fff; margin-top:5px;" id="s-target">[Text]<br>English</div>
+                </div>
+
+                <div class="data-packet" id="packet"></div>
+            </div>
+
+            <div class="controls-row">
+                <button class="run-btn" onclick="startFactory()">▶ POWER ON CONVEYOR</button>
+                <button class="node" style="background:#444; margin:0;" onclick="loadNext()">Next Level ⏭️</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="invoice-panel">
+                <div class="invoice-title">Azure Architecture Rating</div>
+                <div class="stars" id="stars">★ ★ ★</div>
+                <div class="cost-display" id="cost-display">Total Cost: $0.00</div>
+            </div>
+            <div class="terminal" id="term">
+                <div class="t-sys">Factory OS booted. Awaiting configuration.</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- SCENARIOS ---
+    let compMode = false;
+    let currentLvl = 0;
+    
+    const scenarios = [
+        {
+            title: "The French Backlog (Scale Test)",
+            desc: "We have a massive backlog of support phone calls recorded in France (1,000 hours). We need English text transcripts.",
+            input: { type: 'audio', lang: 'french', volume: 'massive' },
+            target: { type: 'text', lang: 'english' },
+            optCost: 40, // Batch STT (25) + Translator (15)
+            prefill: []
+        },
+        {
+            title: "Global Support Pulse (Optimization)",
+            desc: "Monitor free-text social media posts to evaluate how customers feel about the brand.",
+            input: { type: 'text', lang: 'english', volume: 'normal' },
+            target: { hasSentiment: true },
+            optCost: 10, // Sentiment Analysis (10)
+            prefill: []
+        },
+        {
+            title: "Legacy Spaghetti (Debugger Wildcard)",
+            desc: "The factory is jammed! The previous engineer tried to extract customer Intent from chat logs, but used the wrong machine. Fix the assembly line.",
+            input: { type: 'text', lang: 'english', volume: 'normal' },
+            target: { hasIntent: true },
+            optCost: 20, // CLU (20)
+            prefill: [null, 'lang_ner', 'lang_trans', null] // Broken pipeline
+        },
+        {
+            title: "The CEO's Apology",
+            desc: "The CEO wants an apology generated dynamically from text, using a Neural Voice trained to sound exactly like him.",
+            input: { type: 'text', lang: 'english', volume: 'normal' },
+            target: { type: 'audio', isCustomNeural: true, isApproved: true },
+            optCost: 30, // MS Token (0) + Custom Neural (30)
+            prefill: []
+        }
+    ];
+
+    // --- DOM Elements ---
+    const slots = document.querySelectorAll('.machine-slot');
+    const draggables = document.querySelectorAll('.node');
+    const term = document.getElementById('term');
+    const packet = document.getElementById('packet');
+
+    function toggleCompliance() {
+        compMode = !compMode;
+        const btn = document.getElementById('comp-toggle');
+        btn.innerText = `🛡️ Enterprise Compliance: [${compMode ? 'ON' : 'OFF'}]`;
+        btn.style.background = compMode ? 'rgba(244, 67, 54, 0.2)' : 'rgba(255, 235, 59, 0.1)';
+        btn.style.borderColor = compMode ? 'var(--danger)' : 'var(--warning)';
+        btn.style.color = compMode ? 'var(--danger)' : 'var(--warning)';
+        log("System Warning: Enterprise Compliance rules updated.", "t-warn");
+    }
+
+    function log(msg, cls="t-sys") {
+        const div = document.createElement('div');
+        div.className = cls;
+        div.innerText = `> ${msg}`;
+        term.appendChild(div);
+        term.scrollTop = term.scrollHeight;
+    }
+
+    // --- DRAG AND DROP ---
+    draggables.forEach(d => {
+        d.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', d.id);
+            d.style.opacity = '0.5';
+        });
+        d.addEventListener('dragend', () => d.style.opacity = '1');
+    });
+
+    slots.forEach(slot => {
+        slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
+        slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+        slot.addEventListener('drop', e => {
+            e.preventDefault();
+            slot.classList.remove('drag-over');
+            const id = e.dataTransfer.getData('text/plain');
+            const original = document.getElementById(id);
+            if(original && original.classList.contains('node')) {
+                const clone = original.cloneNode(true);
+                clone.id = id + "_clone";
+                clone.draggable = false;
+                clone.addEventListener('click', () => {
+                    slot.innerHTML = "Drop Machine";
+                    delete slot.dataset.machine;
+                    delete slot.dataset.cost;
+                });
+                slot.innerHTML = '';
+                slot.appendChild(clone);
+                slot.dataset.machine = id;
+                slot.dataset.cost = original.dataset.cost;
+            }
+        });
+    });
+
+    // --- LEVEL LOADER ---
+    function loadLevel() {
+        if(currentLvl >= scenarios.length) return alert("You beat the simulation!");
+        let s = scenarios[currentLvl];
+        document.getElementById('lvl-id').innerText = currentLvl + 1;
+        document.getElementById('s-title').innerText = s.title;
+        document.getElementById('s-desc').innerText = s.desc;
+        
+        document.getElementById('s-input').innerHTML = `[${s.input.type.toUpperCase()}]<br>${s.input.lang}`;
+        document.getElementById('s-target').innerHTML = `[${s.target.type ? s.target.type.toUpperCase() : 'DATA'}]<br>Ready`;
+
+        // Clear or Prefill slots
+        slots.forEach((slot, i) => {
+            slot.innerHTML = "Drop Machine";
+            delete slot.dataset.machine;
+            delete slot.dataset.cost;
+            if (s.prefill[i]) {
+                const original = document.getElementById(s.prefill[i]);
+                const clone = original.cloneNode(true);
+                clone.draggable = false;
+                clone.addEventListener('click', () => {
+                    slot.innerHTML = "Drop Machine";
+                    delete slot.dataset.machine;
+                    delete slot.dataset.cost;
+                });
+                slot.innerHTML = '';
+                slot.appendChild(clone);
+                slot.dataset.machine = s.prefill[i];
+                slot.dataset.cost = original.dataset.cost;
+            }
+        });
+        
+        packet.style.display = 'none';
+        packet.className = 'data-packet';
+        document.getElementById('stars').innerHTML = "★ ★ ★";
+        document.getElementById('stars').style.color = "#444";
+        document.getElementById('cost-display').innerText = "Total Cost: $0.00";
+        log(`Loaded Level ${currentLvl+1}. Awaiting assembly.`, "t-sys");
+    }
+
+    // --- FACTORY EXECUTION ENGINE ---
+    function startFactory() {
+        let s = scenarios[currentLvl];
+        let data = JSON.parse(JSON.stringify(s.input)); // Clone input data
+        let totalCost = 0;
+        let machineList = [];
+        
+        slots.forEach(slot => {
+            if(slot.dataset.machine) {
+                machineList.push({ id: slot.dataset.machine, cost: parseInt(slot.dataset.cost), uiSlot: slot });
+                totalCost += parseInt(slot.dataset.cost);
+            }
+        });
+
+        if(machineList.length === 0) return log("Factory is empty. Add machines.", "t-err");
+
+        document.getElementById('cost-display').innerText = `Total Cost: $${totalCost}`;
+        log("--- CONVEYOR POWERED ON ---");
+        
+        // Start animation sequence
+        packet.style.display = 'block';
+        packet.className = 'data-packet';
+        packet.style.left = '45px'; // Start at hopper
+        packet.style.background = '#fff';
+
+        let step = 0;
+        let hasFailed = false;
+
+        function processNext() {
+            if (hasFailed) return;
+            
+            if (step >= machineList.length) {
+                // Reached the end. Evaluate against target.
+                packet.style.left = '850px'; // Move to end hopper
+                evaluateFinal(data, s.target, totalCost, s.optCost, machineList.length);
+                return;
+            }
+
+            let m = machineList[step];
+            // Calculate pixel position of the slot for the animation
+            let slotRect = m.uiSlot.getBoundingClientRect();
+            let beltRect = document.getElementById('belt').getBoundingClientRect();
+            let targetLeft = (slotRect.left - beltRect.left) + 65; 
+            
+            packet.style.left = targetLeft + 'px';
+
+            setTimeout(() => {
+                if (hasFailed) return;
+                log(`Processing at Node: ${m.id}`);
+
+                // APPLY MACHINE LOGIC
+                switch(m.id) {
+                    case 'lang_sentiment':
+                        if(data.type !== 'text') return failFactory("Sentiment requires TEXT input.");
+                        if(compMode && !data.isRedacted) return failFactory("COMPLIANCE BREACH: Analyzing sentiment without PII Redaction.");
+                        data.hasSentiment = true; packet.style.background = '#9c27b0'; break;
+                    case 'lang_keyphrase':
+                        if(data.type !== 'text') return failFactory("Key Phrase requires TEXT input.");
+                        data.hasKeyphrases = true; packet.style.background = '#9c27b0'; break;
+                    case 'lang_ner':
+                        if(data.type !== 'text') return failFactory("NER requires TEXT input.");
+                        data.hasNER = true; packet.style.background = '#9c27b0'; break;
+                    case 'lang_clu':
+                        if(data.type !== 'text') return failFactory("CLU requires TEXT input.");
+                        data.hasIntent = true; packet.style.background = '#9c27b0'; break;
+                    case 'lang_trans':
+                        if(data.type !== 'text') return failFactory("Translator requires TEXT input.");
+                        data.lang = 'english'; packet.style.background = '#0078D4'; break;
+                    case 'speech_rt':
+                        if(data.type !== 'audio') return failFactory("Speech-to-Text requires AUDIO input.");
+                        // SCALING TRAPDOOR
+                        if(data.volume === 'massive') return failFactory("BOTTLENECK: Real-Time STT API crashed. Cannot handle 1000 hrs. Use Batch.");
+                        data.type = 'text'; packet.style.background = '#00bcd4'; break;
+                    case 'speech_batch':
+                        if(data.type !== 'audio') return failFactory("Speech-to-Text requires AUDIO input.");
+                        data.type = 'text'; packet.style.background = '#00bcd4'; break;
+                    case 'speech_tts_std':
+                        if(data.type !== 'text') return failFactory("TTS requires TEXT input.");
+                        data.type = 'audio'; packet.style.background = '#4CAF50'; break;
+                    case 'speech_tts_neu':
+                        if(data.type !== 'text') return failFactory("TTS requires TEXT input.");
+                        if(!data.isApproved) return failFactory("COMPLIANCE BREACH: Neural Voice deployed without MS Approval Token.");
+                        data.type = 'audio'; data.isCustomNeural = true; packet.style.background = '#4CAF50'; break;
+                    case 'comp_pii':
+                        data.isRedacted = true; packet.style.background = 'var(--warning)'; break;
+                    case 'comp_ms':
+                        data.isApproved = true; packet.style.background = 'var(--warning)'; break;
+                }
+                
+                step++;
+                processNext();
+            }, 1000); // 1 second per node transition
+        }
+
+        // Trigger first step
+        setTimeout(processNext, 100);
+
+        function failFactory(msg) {
+            hasFailed = true;
+            packet.classList.add('packet-jammed');
+            log(msg, "t-err");
+        }
+    }
+
+    function evaluateFinal(finalData, target, cost, optCost, nodeCount) {
+        let isPerfect = true;
+        for (const [key, val] of Object.entries(target)) {
+            if (finalData[key] !== val) {
+                isPerfect = false;
+                log(`MISSING TARGET: Factory output lacks '${key}'.`, "t-err");
+            }
+        }
+
+        if(isPerfect) {
+            log("SUCCESS: Data output matches requirements.", "t-succ");
+            
+            // Star Rating Logic
+            let stars = 1;
+            if (cost <= optCost + 10) stars = 2;
+            if (cost <= optCost && nodeCount <= 3) stars = 3;
+
+            let starHtml = "";
+            for(let i=0; i<3; i++) {
+                starHtml += i < stars ? `<span class="star-earned">★</span> ` : `★ `;
+            }
+            document.getElementById('stars').innerHTML = starHtml;
+
+            if(stars === 3) log("ARCHITECTURE RATING: 3 Stars! Highly Optimized.", "t-succ");
+            else if (stars === 2) log("ARCHITECTURE RATING: 2 Stars. Works, but could be cheaper.", "t-warn");
+            else log("ARCHITECTURE RATING: 1 Star. Bloated architecture wasted Azure budget.", "t-err");
+
+        } else {
+            log("FACTORY FAILED: Output rejected by Dashboard.", "t-err");
+        }
+    }
+
+    function loadNext() {
+        currentLvl++;
+        loadLevel();
+    }
+
+    // Init
+    loadLevel();
+
+</script>
+</body>
+</html>
