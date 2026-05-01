@@ -1,4 +1,4 @@
-# Fantastic Octo Sniffle 🐙🤧 
+# Tiny Projects Repository 🛠 
 **Applied AI & Interactive Educational Simulators**
 
 Welcome to the tiny project repository! This project contains a collection of standalone, interactive HTML/JS applications, simulators, and resources focused on Applied Artificial Intelligence, Machine Learning pipelines, Prompt Engineering, and AI Ethics. 
