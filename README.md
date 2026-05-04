@@ -19,7 +19,7 @@ Originally developed with concepts tied to MIS and Applied AI for Business (feat
     * You are the Chief AI Officer at Roboso Medical. Make high-stakes decisions on AI deployments while balancing four critical KPIs: Budget, Morale, Trust, and Compliance. Navigate ethical dilemmas, biases, and data privacy crises.
 
 ### 2. Interactive Guides & Dashboards
-* **Ethical AI Red Teaming Booklet (`redteam (1).html`)**
+* **Ethical AI Red Teaming Booklet (`redteam.html`)**
     * An interactive, dashboard-style guide covering the fundamentals of AI Red Teaming.
     * Includes a breakdown of the OWASP Top 10 for LLMs, agentic AI guardrails, persona-based attack scenarios, and a comprehensive Red Team Checklist. Tailored for business leaders and MIS professionals.
 * **AI Town Fish Tank (`ai-tank.html`)**
