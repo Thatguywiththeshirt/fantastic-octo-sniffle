@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Previewer</title>
+
+  <!-- Fonts -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    /* ============================================================
+       ART DIRECTION:
+       Developer productivity tool → calm, typographic, precise
+       Palette: Nexus warm beige + teal accent
+       Typography: Satoshi (UI) + JetBrains Mono (editor)
+       Density: Balanced — full-height split pane
+    ============================================================ */
+
+    /* ---- Design Tokens ---- */
+    :root, [data-theme="light"] {
+      --color-bg:               #f7f6f2;
+      --color-surface:          #f9f8f5;
+      --color-surface-2:        #fbfbf9;
+      --color-surface-offset:   #f0ede8;
+      --color-surface-dynamic:  #e8e5e0;
+      --color-divider:          #dcd9d5;
+      --color-border:           #d4d1ca;
+      --color-text:             #28251d;
+      --color-text-muted:       #7a7974;
+      --color-text-faint:       #bab9b4;
+      --color-text-inverse:     #f9f8f4;
+      --color-primary:          #01696f;
+      --color-primary-hover:    #0c4e54;
+      --color-primary-active:   #0f3638;
+      --color-primary-highlight:#cedcd8;
+      --color-error:            #a12c7b;
+      --color-success:          #437a22;
+      --color-warning:          #964219;
+
+      --shadow-sm: 0 1px 2px oklch(0.2 0.01 80 / 0.06);
+      --shadow-md: 0 4px 12px oklch(0.2 0.01 80 / 0.08);
+      --shadow-lg: 0 12px 32px oklch(0.2 0.01 80 / 0.12);
+
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-full: 9999px;
+
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+      --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+      --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+      --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+      --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+      --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+
+      --space-1: 0.25rem; --space-2: 0.5rem;  --space-3: 0.75rem;
+      --space-4: 1rem;    --space-5: 1.25rem; --space-6: 1.5rem;
+      --space-8: 2rem;    --space-10: 2.5rem; --space-12: 3rem;
+
+      --font-body: 'Satoshi', 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+      /* Editor-specific */
+      --editor-bg:       #fafaf8;
+      --editor-line-hl:  rgba(1, 105, 111, 0.04);
+
+      /* hljs theme name for switching */
+      --hljs-theme-light: atom-one-light;
+      --hljs-theme-dark: atom-one-dark;
+    }
+
+    [data-theme="dark"] {
+      --color-bg:               #171614;
+      --color-surface:          #1c1b19;
+      --color-surface-2:        #201f1d;
+      --color-surface-offset:   #1d1c1a;
+      --color-surface-dynamic:  #2d2c2a;
+      --color-divider:          #262523;
+      --color-border:           #393836;
+      --color-text:             #cdccca;
+      --color-text-muted:       #797876;
+      --color-text-faint:       #5a5957;
+      --color-text-inverse:     #2b2a28;
+      --color-primary:          #4f98a3;
+      --color-primary-hover:    #227f8b;
+      --color-primary-active:   #1a626b;
+      --color-primary-highlight:#313b3b;
+      --color-error:            #d163a7;
+      --color-success:          #6daa45;
+      --color-warning:          #bb653b;
+
+      --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.2);
+      --shadow-md: 0 4px 12px oklch(0 0 0 / 0.3);
+      --shadow-lg: 0 12px 32px oklch(0 0 0 / 0.4);
+
+      --editor-bg:       #18171530;
+      --editor-line-hl:  rgba(79, 152, 163, 0.06);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) {
+        --color-bg: #171614; --color-surface: #1c1b19; --color-surface-2: #201f1d;
+        --color-surface-offset: #1d1c1a; --color-surface-dynamic: #2d2c2a;
+        --color-divider: #262523; --color-border: #393836;
+        --color-text: #cdccca; --color-text-muted: #797876; --color-text-faint: #5a5957;
+        --color-text-inverse: #2b2a28;
+        --color-primary: #4f98a3; --color-primary-hover: #227f8b; --color-primary-active: #1a626b;
+        --color-primary-highlight: #313b3b;
+        --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.2);
+        --shadow-md: 0 4px 12px oklch(0 0 0 / 0.3);
+        --editor-bg: #18171530; --editor-line-hl: rgba(79, 152, 163, 0.06);
+      }
+    }
+
+    /* ---- Base Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-size: 16px;
+      scroll-behavior: smooth;
+      height: 100%;
+    }
+    body {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      background: var(--color-bg);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background var(--transition), color var(--transition);
+    }
+    button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+    input, textarea { font: inherit; color: inherit; }
+    img, svg { display: block; }
+    :focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+    ::selection {
+      background: oklch(from var(--color-primary) l c h / 0.2);
+      color: var(--color-text);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    #app-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 0 var(--space-4);
+      height: 48px;
+      min-height: 48px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      z-index: 100;
+      transition: height var(--transition), opacity var(--transition), background var(--transition);
+      flex-shrink: 0;
+    }
+    #app-header.focus-mode {
+      height: 0;
+      min-height: 0;
+      padding: 0;
+      overflow: hidden;
+      border-bottom: none;
+      opacity: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      text-decoration: none;
+      color: var(--color-text);
+      flex-shrink: 0;
+    }
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .logo-text span {
+      color: var(--color-primary);
+    }
+
+    .header-filename {
+      flex: 1;
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-align: center;
+      font-family: var(--font-mono);
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 var(--space-4);
+    }
+    .header-filename.unsaved::after {
+      content: " •";
+      color: var(--color-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      color: var(--color-text-muted);
+      transition: color var(--transition), background var(--transition);
+      position: relative;
+    }
+    .icon-btn:hover {
+      color: var(--color-text);
+      background: var(--color-surface-offset);
+    }
+    .icon-btn:active { background: var(--color-surface-dynamic); }
+    .icon-btn.active {
+      color: var(--color-primary);
+      background: var(--color-primary-highlight);
+    }
+    .icon-btn svg { width: 16px; height: 16px; pointer-events: none; }
+
+    .btn-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--color-border);
+      margin: 0 var(--space-1);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       TOOLBAR
+    ============================================================ */
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      row-gap: var(--space-1);
+      transition: height var(--transition), opacity var(--transition), padding var(--transition);
+    }
+    #toolbar::-webkit-scrollbar { display: none; }
+    #toolbar.focus-mode {
+      height: 0;
+      padding: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #toolbar.preview-only {
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    .tb-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 28px;
+      min-width: 28px;
+      padding: 0 var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      transition: color var(--transition), background var(--transition);
+      font-family: var(--font-body);
+    }
+    .tb-btn svg { width: 14px; height: 14px; pointer-events: none; }
+    .tb-btn:hover { color: var(--color-text); background: var(--color-surface-offset); }
+    .tb-btn:active { background: var(--color-surface-dynamic); }
+    .tb-divider {
+      width: 1px;
+      height: 18px;
+      background: var(--color-border);
+      margin: 0 var(--space-1);
+      flex-shrink: 0;
+    }
+    .tb-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--color-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0 var(--space-1);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       MAIN PANE
+    ============================================================ */
+    #main-pane {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ---- EDITOR ---- */
+    #editor-pane {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--color-surface);
+      transition: flex var(--transition);
+    }
+    #editor-pane.hidden { flex: 0; overflow: hidden; display: none; }
+
+    #editor {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: none;
+      outline: none;
+      background: var(--editor-bg);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.75;
+      padding: var(--space-8) var(--space-6);
+      tab-size: 2;
+      overflow: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      caret-color: var(--color-primary);
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border) transparent;
+      transition: background var(--transition);
+    }
+    #editor::placeholder { color: var(--color-text-faint); }
+    #editor::-webkit-scrollbar { width: 6px; }
+    #editor::-webkit-scrollbar-track { background: transparent; }
+    #editor::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: var(--radius-full);
+    }
+
+    /* ---- RESIZER ---- */
+    #resizer {
+      width: 5px;
+      background: var(--color-border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      transition: background var(--transition);
+      z-index: 10;
+    }
+    #resizer:hover, #resizer.dragging { background: var(--color-primary); }
+    #resizer::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -4px; right: -4px; bottom: 0;
+    }
+    #resizer.hidden { display: none; }
+
+    /* ---- PREVIEW ---- */
+    #preview-pane {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--color-surface-2);
+      border-left: 1px solid var(--color-border);
+      transition: flex var(--transition), background var(--transition);
+    }
+    #preview-pane.hidden { flex: 0; overflow: hidden; display: none; }
+    #preview-pane.no-border { border-left: none; }
+
+    #preview-pane-label {
+      display: flex;
+      align-items: center;
+      padding: var(--space-2) var(--space-4);
+      height: 32px;
+      min-height: 32px;
+      font-size: var(--text-xs);
+      color: var(--color-text-faint);
+      border-bottom: 1px solid var(--color-divider);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
+      background: var(--color-surface);
+      flex-shrink: 0;
+      gap: var(--space-2);
+    }
+    #preview-pane-label svg { width: 12px; height: 12px; color: var(--color-text-faint); }
+
+    #preview {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: var(--space-8) var(--space-8);
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border) transparent;
+    }
+    #preview::-webkit-scrollbar { width: 6px; }
+    #preview::-webkit-scrollbar-track { background: transparent; }
+    #preview::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: var(--radius-full);
+    }
+    /* Center preview content with max width */
+    #preview-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* ============================================================
+       MARKDOWN STYLES (preview)
+    ============================================================ */
+    .md-body {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--color-text);
+    }
+    .md-body h1, .md-body h2, .md-body h3,
+    .md-body h4, .md-body h5, .md-body h6 {
+      font-family: var(--font-body);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--color-text);
+      text-wrap: balance;
+      margin-top: 1.75em;
+      margin-bottom: 0.5em;
+    }
+    .md-body h1:first-child,
+    .md-body h2:first-child { margin-top: 0; }
+    .md-body h1 { font-size: 2rem; letter-spacing: -0.02em; }
+    .md-body h2 { font-size: 1.5rem; letter-spacing: -0.01em; border-bottom: 1px solid var(--color-divider); padding-bottom: 0.3em; }
+    .md-body h3 { font-size: 1.25rem; }
+    .md-body h4 { font-size: 1.1rem; }
+    .md-body h5, .md-body h6 { font-size: 1rem; color: var(--color-text-muted); }
+
+    .md-body p { margin-bottom: 1em; max-width: 72ch; text-wrap: pretty; }
+    .md-body a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; }
+    .md-body a:hover { color: var(--color-primary-hover); }
+    .md-body strong { font-weight: 700; }
+    .md-body em { font-style: italic; }
+    .md-body del { text-decoration: line-through; color: var(--color-text-muted); }
+
+    .md-body ul, .md-body ol { padding-left: 1.5em; margin-bottom: 1em; }
+    .md-body li { margin-bottom: 0.25em; }
+    .md-body li > ul, .md-body li > ol { margin-bottom: 0; margin-top: 0.25em; }
+    .md-body ul { list-style: disc; }
+    .md-body ol { list-style: decimal; }
+
+    /* Task lists */
+    .md-body input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border: 1.5px solid var(--color-border);
+      border-radius: 3px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+      position: relative;
+      top: -1px;
+      background: var(--color-surface);
+      flex-shrink: 0;
+    }
+    .md-body input[type="checkbox"]:checked {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+    .md-body input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 2px; top: 5px;
+      width: 6px; height: 3px;
+      border-left: 1.5px solid white;
+      border-bottom: 1.5px solid white;
+      transform: rotate(-45deg) translateY(-3px);
+    }
+    .md-body li.task-list-item { list-style: none; margin-left: -1.5em; display: flex; align-items: flex-start; gap: 0; }
+
+    .md-body blockquote {
+      border-left: 3px solid var(--color-primary);
+      background: oklch(from var(--color-primary) l c h / 0.05);
+      margin: 1em 0;
+      padding: var(--space-3) var(--space-4);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    .md-body blockquote p { margin: 0; }
+
+    .md-body hr {
+      border: none;
+      border-top: 1px solid var(--color-divider);
+      margin: 2em 0;
+    }
+
+    .md-body code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: var(--color-surface-offset);
+      color: var(--color-text);
+      padding: 0.15em 0.4em;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    .md-body pre {
+      background: #1e1e2e;
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      margin: 1.25em 0;
+      box-shadow: var(--shadow-md);
+    }
+    .md-body pre code {
+      background: transparent;
+      border: none;
+      color: inherit;
+      padding: var(--space-5) var(--space-6);
+      font-size: 13px;
+      line-height: 1.65;
+      display: block;
+      white-space: pre;
+    }
+    /* Pre header with language label */
+    .md-body .code-block-wrapper { position: relative; margin: 1.25em 0; }
+    .md-body .code-block-wrapper pre { margin: 0; }
+    .md-body .code-lang-label {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-3);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: #7f7f9f;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+    }
+    .md-body .copy-code-btn {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-3);
+      font-size: 10px;
+      font-family: var(--font-body);
+      color: #7f7f9f;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-sm);
+      padding: 2px 8px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .md-body .code-block-wrapper:hover .copy-code-btn { opacity: 1; }
+    .md-body .copy-code-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .md-body .copy-code-btn.copied { color: #6daa45; border-color: #6daa45; }
+
+    /* Tables */
+    .md-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.25em 0;
+      font-size: 0.9em;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .md-body thead { background: var(--color-surface-offset); }
+    .md-body th {
+      padding: var(--space-2) var(--space-4);
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .md-body td {
+      padding: var(--space-2) var(--space-4);
+      border-bottom: 1px solid var(--color-divider);
+    }
+    .md-body tr:last-child td { border-bottom: none; }
+    .md-body tbody tr:hover { background: var(--color-surface-offset); }
+
+    /* Images */
+    .md-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      display: block;
+      margin: 1em 0;
+    }
+
+    /* Definition lists */
+    .md-body dl { margin-bottom: 1em; }
+    .md-body dt { font-weight: 600; margin-top: 0.5em; }
+    .md-body dd { margin-left: 1.5em; color: var(--color-text-muted); }
+
+    /* Empty state */
+    #preview-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-16) var(--space-8);
+      color: var(--color-text-faint);
+      height: 100%;
+    }
+    #preview-empty svg { width: 40px; height: 40px; margin-bottom: var(--space-4); opacity: 0.4; }
+    #preview-empty h3 { font-size: var(--text-base); color: var(--color-text-muted); margin-bottom: var(--space-2); font-weight: 500; }
+    #preview-empty p { font-size: var(--text-sm); max-width: 30ch; }
+
+    /* ============================================================
+       STATUS BAR
+    ============================================================ */
+    #status-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 0 var(--space-4);
+      height: 28px;
+      min-height: 28px;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      font-size: var(--text-xs);
+      color: var(--color-text-faint);
+      font-family: var(--font-mono);
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      white-space: nowrap;
+    }
+    .status-item strong { color: var(--color-text-muted); font-weight: 500; }
+    .status-sep { color: var(--color-divider); }
+    .status-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-4); }
+    #cursor-pos { font-variant-numeric: tabular-nums; }
+
+    /* ============================================================
+       TOOLTIP
+    ============================================================ */
+    [data-tooltip] {
+      position: relative;
+    }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-text);
+      color: var(--color-bg);
+      font-size: 11px;
+      font-family: var(--font-body);
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 200;
+      letter-spacing: 0;
+    }
+    [data-tooltip]:hover::after { opacity: 1; }
+
+    /* ============================================================
+       TOAST
+    ============================================================ */
+    #toast-container {
+      position: fixed;
+      bottom: var(--space-8);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--color-text);
+      color: var(--color-bg);
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      font-weight: 500;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: var(--color-success); color: white; }
+    .toast.error { background: var(--color-error); color: white; }
+
+    /* ============================================================
+       DRAG OVERLAY
+    ============================================================ */
+    #drag-overlay {
+      position: fixed;
+      inset: 0;
+      background: oklch(from var(--color-primary) l c h / 0.1);
+      border: 3px dashed var(--color-primary);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--space-4);
+      pointer-events: none;
+      border-radius: var(--radius-lg);
+      margin: var(--space-4);
+    }
+    #drag-overlay.active { display: flex; }
+    #drag-overlay svg { width: 48px; height: 48px; color: var(--color-primary); }
+    #drag-overlay p {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    /* ============================================================
+       SHORTCUT HELP MODAL
+    ============================================================ */
+    #shortcuts-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: oklch(from var(--color-bg) l c h / 0.8);
+      backdrop-filter: blur(4px);
+    }
+    #shortcuts-modal.open { display: flex; }
+    #shortcuts-modal-inner {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-6);
+      max-width: 520px;
+      width: calc(100vw - var(--space-8));
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    #shortcuts-modal-inner h2 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .shortcut-group { margin-bottom: var(--space-5); }
+    .shortcut-group h3 { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-faint); font-weight: 600; margin-bottom: var(--space-3); }
+    .shortcut-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider); font-size: var(--text-sm); }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-row .desc { color: var(--color-text-muted); }
+    .shortcut-keys { display: flex; gap: var(--space-1); }
+    kbd {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: var(--color-surface-offset);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      padding: 1px 6px;
+      color: var(--color-text);
+      box-shadow: 0 1px 0 var(--color-border);
+    }
+
+    /* ============================================================
+       VIEW MODE RESPONSIVE
+    ============================================================ */
+    @media (max-width: 640px) {
+      #editor { padding: var(--space-4); font-size: 13px; }
+      #preview { padding: var(--space-4); }
+      .logo-text { display: none; }
+      .tb-label { display: none; }
+      #resizer { display: none; }
+    }
+
+    /* ============================================================
+       FIND BAR
+    ============================================================ */
+    #find-bar {
+      display: none;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+    #find-bar.open { display: flex; }
+    #find-input {
+      flex: 1;
+      background: var(--color-surface-offset);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-1) var(--space-3);
+      font-size: var(--text-sm);
+      outline: none;
+      max-width: 280px;
+    }
+    #find-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px oklch(from var(--color-primary) l c h / 0.15); }
+    #find-count { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; min-width: 60px; }
+
+    /* Scroll snap for prev/next */
+    .find-btn {
+      height: 26px; width: 26px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm);
+      color: var(--color-text-muted);
+      transition: color var(--transition), background var(--transition);
+    }
+    .find-btn:hover { color: var(--color-text); background: var(--color-surface-offset); }
+    .find-btn svg { width: 12px; height: 12px; }
+
+    /* ============================================================
+       HEADING NUMBERS (optional)
+    ============================================================ */
+    .md-body.show-heading-nums { counter-reset: h2counter; }
+    .md-body.show-heading-nums h2::before { counter-increment: h2counter; content: counter(h2counter) ". "; color: var(--color-text-faint); }
+
+    /* Line numbers column (overlay approach) */
+    #editor-line-numbers {
+      position: absolute;
+      left: 0; top: 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--color-text-faint);
+      padding: var(--space-8) var(--space-3) var(--space-8) var(--space-4);
+      pointer-events: none;
+      text-align: right;
+      width: 3ch;
+      user-select: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Skip link -->
+<a href="#editor" class="sr-only" style="position:absolute;top:-100px;left:0;z-index:9999;padding:8px 16px;background:var(--color-primary);color:white;border-radius:0 0 8px 0;transition:top 0.2s" onfocus="this.style.top='0'" onblur="this.style.top='-100px'">Skip to editor</a>
+
+<!-- ===== HEADER ===== -->
+<header id="app-header" role="banner">
+  <!-- Logo -->
+  <a href="#" class="logo" aria-label="Markdown Previewer home">
+    <svg class="logo-mark" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <!-- M letterform in a rounded square -->
+      <rect width="28" height="28" rx="6" fill="currentColor" opacity="0.1"/>
+      <path d="M5 20V8L9.5 14.5L14 8L18.5 14.5L23 8V20" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <span class="logo-text">Mark<span>down</span></span>
+  </a>
+
+  <!-- Filename -->
+  <div class="header-filename" id="filename-display" title="Current file">untitled.md</div>
+
+  <!-- Actions -->
+  <div class="header-actions" role="toolbar" aria-label="Header actions">
+
+    <!-- View mode -->
+    <button class="icon-btn active" id="btn-split" data-tooltip="Split view" aria-label="Split view" aria-pressed="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="2" width="6" height="12" rx="1"/>
+        <rect x="9" y="2" width="6" height="12" rx="1"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="btn-edit" data-tooltip="Editor only" aria-label="Editor only" aria-pressed="false">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="2" width="14" height="12" rx="1"/>
+        <path d="M4 6h8M4 9h5"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="btn-preview" data-tooltip="Preview only" aria-label="Preview only" aria-pressed="false">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="2" width="14" height="12" rx="1"/>
+        <path d="M4 5h8M4 8h8M4 11h5"/>
+      </svg>
+    </button>
+
+    <div class="btn-divider" role="separator"></div>
+
+    <!-- Open file -->
+    <button class="icon-btn" id="btn-open" data-tooltip="Open .md file (Ctrl+O)" aria-label="Open markdown file">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 4a1 1 0 011-1h3l1.5 2H13a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/>
+      </svg>
+    </button>
+    <input type="file" id="file-input" accept=".md,.markdown,.txt" hidden aria-hidden="true">
+
+    <!-- Download .md -->
+    <button class="icon-btn" id="btn-download-md" data-tooltip="Download .md (Ctrl+S)" aria-label="Download as markdown">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/>
+      </svg>
+    </button>
+
+    <!-- Copy HTML -->
+    <button class="icon-btn" id="btn-copy-html" data-tooltip="Copy HTML to clipboard" aria-label="Copy rendered HTML">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="5" width="9" height="9" rx="1"/>
+        <path d="M5 5V4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1h-1"/>
+      </svg>
+    </button>
+
+    <!-- Export HTML -->
+    <button class="icon-btn" id="btn-export-html" data-tooltip="Export as .html" aria-label="Export as HTML file">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"/>
+        <path d="M9 2v4h4"/>
+        <path d="M5 9l1.5 1.5L5 12M7 12h3"/>
+      </svg>
+    </button>
+
+    <div class="btn-divider" role="separator"></div>
+
+    <!-- Focus mode -->
+    <button class="icon-btn" id="btn-focus" data-tooltip="Focus mode (Ctrl+Shift+F)" aria-label="Toggle focus mode" aria-pressed="false">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 5V3h3M11 3h3v2M14 11v2h-3M5 13H2v-2"/>
+      </svg>
+    </button>
+
+    <!-- Shortcuts -->
+    <button class="icon-btn" id="btn-shortcuts" data-tooltip="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="4" width="14" height="8" rx="1.5"/>
+        <path d="M4 7h1M7 7h1M10 7h1M4 9.5h1M7 9.5h4"/>
+      </svg>
+    </button>
+
+    <!-- Theme toggle -->
+    <button class="icon-btn" id="btn-theme" data-tooltip="Toggle dark mode" aria-label="Toggle color theme" data-theme-toggle>
+      <!-- Will be set by JS -->
+    </button>
+  </div>
+</header>
+
+<!-- ===== FIND BAR ===== -->
+<div id="find-bar" role="search" aria-label="Find in editor">
+  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;color:var(--color-text-muted);flex-shrink:0">
+    <circle cx="5.5" cy="5.5" r="3.5"/><path d="M8.5 8.5L12 12"/>
+  </svg>
+  <input type="search" id="find-input" placeholder="Find…" aria-label="Find text">
+  <span id="find-count" aria-live="polite"></span>
+  <button class="find-btn" id="find-prev" aria-label="Previous match">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 8L6 5l-3 3"/></svg>
+  </button>
+  <button class="find-btn" id="find-next" aria-label="Next match">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4l3 3 3-3"/></svg>
+  </button>
+  <button class="find-btn" id="find-close" aria-label="Close find bar">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l8 8M10 2L2 10"/></svg>
+  </button>
+</div>
+
+<!-- ===== TOOLBAR ===== -->
+<div id="toolbar" role="toolbar" aria-label="Formatting toolbar">
+
+  <span class="tb-label" aria-hidden="true">Heading</span>
+  <button class="tb-btn" data-tooltip="Heading 1" aria-label="Insert Heading 1" data-action="h1"><strong>H1</strong></button>
+  <button class="tb-btn" data-tooltip="Heading 2" aria-label="Insert Heading 2" data-action="h2"><strong>H2</strong></button>
+  <button class="tb-btn" data-tooltip="Heading 3" aria-label="Insert Heading 3" data-action="h3"><strong>H3</strong></button>
+
+  <div class="tb-divider" role="separator"></div>
+  <span class="tb-label" aria-hidden="true">Inline</span>
+  <button class="tb-btn" data-tooltip="Bold (Ctrl+B)" aria-label="Bold" data-action="bold">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h4a2 2 0 000-4H4v4zM4 7h4.5a2.5 2.5 0 010 5H4V7z"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Italic (Ctrl+I)" aria-label="Italic" data-action="italic">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3H6M9 11H7M7 3L5 11"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Strikethrough" aria-label="Strikethrough" data-action="strike">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h8M5 4.5C5 3.7 5.9 3 7 3s2 .7 2 1.5M5 9.5C5 10.3 5.9 11 7 11s2-.7 2-1.5"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Inline code (Ctrl+`)" aria-label="Inline code" data-action="code">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5L1 7l3 2M10 5l3 2-3 2M8 3L6 11"/></svg>
+  </button>
+
+  <div class="tb-divider" role="separator"></div>
+  <span class="tb-label" aria-hidden="true">Block</span>
+  <button class="tb-btn" data-tooltip="Blockquote" aria-label="Blockquote" data-action="quote">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="2" height="8" rx="1"/><path d="M5 5h6M5 9h4"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Code block" aria-label="Code block" data-action="codeblock">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5"/><path d="M1.5 5.5h11"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Horizontal rule" aria-label="Horizontal rule" data-action="hr">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 7h10"/><circle cx="7" cy="7" r="1" fill="currentColor"/></svg>
+  </button>
+
+  <div class="tb-divider" role="separator"></div>
+  <span class="tb-label" aria-hidden="true">List</span>
+  <button class="tb-btn" data-tooltip="Unordered list" aria-label="Unordered list" data-action="ul">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="3" cy="4.5" r="1" fill="currentColor"/><circle cx="3" cy="9.5" r="1" fill="currentColor"/><path d="M5.5 4.5h7M5.5 9.5h7"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Ordered list" aria-label="Ordered list" data-action="ol">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 3h1.5v5M2 8h3M5.5 4.5h6M5.5 9.5h6"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Task list" aria-label="Task list" data-action="task">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="4" height="4" rx="1"/><path d="M2.5 6l1 1 1.5-1.5M7 6h6"/></svg>
+  </button>
+
+  <div class="tb-divider" role="separator"></div>
+  <span class="tb-label" aria-hidden="true">Insert</span>
+  <button class="tb-btn" data-tooltip="Insert link (Ctrl+K)" aria-label="Insert link" data-action="link">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5.5 8.5l3-3M3 9a2 2 0 01-1-3.46L5.5 3a2 2 0 012.83 2.83L7 7M7 5l2.5-2.5A2 2 0 0112.33 5.5L9 8.5a2 2 0 01-2.83-2.83L7 5"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Insert image" aria-label="Insert image" data-action="image">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="2.5" width="12" height="9" rx="1.5"/><path d="M1 8.5l3-3 2.5 2.5L9 5l4 5"/><circle cx="4.5" cy="5.5" r="1" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button class="tb-btn" data-tooltip="Insert table" aria-label="Insert table" data-action="table">
+    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="2" width="12" height="10" rx="1"/><path d="M1 5h12M7 2v10M1 8h12"/></svg>
+  </button>
+</div>
+
+<!-- ===== MAIN PANE ===== -->
+<main id="main-pane" role="main">
+  <!-- Editor -->
+  <section id="editor-pane" aria-label="Markdown editor">
+    <textarea
+      id="editor"
+      spellcheck="true"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      placeholder="Start writing Markdown here…&#10;&#10;Drag and drop a .md file, or use Ctrl+O to open one."
+      aria-label="Markdown source editor"
+      aria-multiline="true"
+    ></textarea>
+  </section>
+
+  <!-- Resizer -->
+  <div id="resizer" role="separator" aria-label="Resize panels" aria-orientation="vertical" tabindex="0"></div>
+
+  <!-- Preview -->
+  <section id="preview-pane" aria-label="Rendered preview" aria-live="polite" aria-atomic="false">
+    <div id="preview-pane-label" aria-hidden="true">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4S1 6 1 6z"/><circle cx="6" cy="6" r="1.5"/>
+      </svg>
+      Preview
+    </div>
+    <div id="preview" tabindex="0">
+      <div id="preview-inner" class="md-body">
+        <div id="preview-empty" aria-label="Empty state">
+          <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="4" y="6" width="32" height="28" rx="3"/>
+            <path d="M10 14h20M10 19h15M10 24h10"/>
+          </svg>
+          <h3>Nothing to preview yet</h3>
+          <p>Start typing in the editor — your preview will appear here in real time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== STATUS BAR ===== -->
+<footer id="status-bar" role="contentinfo" aria-label="Document statistics">
+  <div class="status-item">
+    <span id="word-count">0</span>&nbsp;<strong>words</strong>
+  </div>
+  <span class="status-sep" aria-hidden="true">·</span>
+  <div class="status-item">
+    <span id="char-count">0</span>&nbsp;<strong>chars</strong>
+  </div>
+  <span class="status-sep" aria-hidden="true">·</span>
+  <div class="status-item">
+    <span id="line-count">0</span>&nbsp;<strong>lines</strong>
+  </div>
+  <div class="status-right">
+    <div class="status-item" id="cursor-pos" aria-live="polite" aria-atomic="true">Ln 1, Col 1</div>
+    <span class="status-sep" aria-hidden="true">·</span>
+    <div class="status-item">Markdown</div>
+  </div>
+</footer>
+
+<!-- ===== DRAG OVERLAY ===== -->
+<div id="drag-overlay" aria-hidden="true">
+  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path d="M8 40V28M8 28l-4 4M8 28l4 4M40 40V28M40 28l-4 4M40 28l4 4M24 8v24M24 8l-6 6M24 8l6 6"/>
+  </svg>
+  <p>Drop your .md file here</p>
+</div>
+
+<!-- ===== SHORTCUTS MODAL ===== -->
+<div id="shortcuts-modal" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" tabindex="-1">
+  <div id="shortcuts-modal-inner">
+    <h2>
+      Keyboard Shortcuts
+      <button class="icon-btn" id="close-shortcuts-modal" aria-label="Close shortcuts dialog">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 2l12 12M14 2L2 14"/></svg>
+      </button>
+    </h2>
+
+    <div class="shortcut-group">
+      <h3>File</h3>
+      <div class="shortcut-row"><span class="desc">Open .md file</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>O</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Save / Download .md</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>S</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Find in editor</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>F</kbd></span></div>
+    </div>
+
+    <div class="shortcut-group">
+      <h3>Formatting</h3>
+      <div class="shortcut-row"><span class="desc">Bold</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>B</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Italic</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>I</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Insert link</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>K</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Inline code</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>`</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Indent (in list)</span><span class="shortcut-keys"><kbd>Tab</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Outdent (in list)</span><span class="shortcut-keys"><kbd>Shift</kbd><kbd>Tab</kbd></span></div>
+    </div>
+
+    <div class="shortcut-group">
+      <h3>View</h3>
+      <div class="shortcut-row"><span class="desc">Toggle focus mode</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>F</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Show shortcuts</span><span class="shortcut-keys"><kbd>?</kbd></span></div>
+      <div class="shortcut-row"><span class="desc">Toggle theme</span><span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>L</kbd></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+<script>
+// ================================================================
+// AGENT 2 — MARKDOWN ENGINE
+// Handles: marked.js config, GFM, syntax highlight, live preview
+// ================================================================
+
+// Configure marked
+marked.setOptions({
+  gfm: true,
+  breaks: false,
+  pedantic: false,
+  mangle: false,
+  headerIds: true,
+});
+
+// Custom renderer for enhanced code blocks
+const renderer = new marked.Renderer();
+
+renderer.code = function(code, lang) {
+  const language = (lang || '').trim().toLowerCase();
+  let highlighted;
+  try {
+    if (language && hljs.getLanguage(language)) {
+      highlighted = hljs.highlight(code, { language, ignoreIllegals: true }).value;
+    } else {
+      highlighted = hljs.highlightAuto(code).value;
+    }
+  } catch (e) {
+    highlighted = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  const langLabel = language ? `<span class="code-lang-label">${language}</span>` : '';
+  const copyBtn = `<button class="copy-code-btn" aria-label="Copy code" onclick="copyCodeBlock(this)">Copy</button>`;
+  return `<div class="code-block-wrapper"><pre><code class="hljs language-${language}">${highlighted}</code></pre>${langLabel}${copyBtn}</div>`;
+};
+
+// Task list items
+renderer.listitem = function(text) {
+  if (/^\s*\[[ x]\]/.test(text)) {
+    const checked = /^\s*\[x\]/.test(text);
+    const content = text.replace(/^\s*\[[ x]\]\s*/, '');
+    return `<li class="task-list-item"><input type="checkbox" ${checked ? 'checked' : ''} disabled aria-checked="${checked}">${content}</li>\n`;
+  }
+  return `<li>${text}</li>\n`;
+};
+
+renderer.link = function(href, title, text) {
+  return `<a href="${href}" ${title ? `title="${title}"` : ''} target="_blank" rel="noopener noreferrer">${text}</a>`;
+};
+
+marked.use({ renderer });
+
+function renderMarkdown(source) {
+  if (!source.trim()) return null;
+  const raw = marked.parse(source);
+  return DOMPurify.sanitize(raw, {
+    ADD_ATTR: ['target', 'rel', 'checked', 'disabled'],
+    ALLOW_DATA_ATTR: false,
+  });
+}
+
+function copyCodeBlock(btn) {
+  const code = btn.previousElementSibling.querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => { btn.textContent = 'Failed'; });
+}
+
+// ================================================================
+// AGENT 3 — UX DESIGNER
+// Handles: toolbar, keyboard shortcuts, view modes, export, stats
+// ================================================================
+
+const editor     = document.getElementById('editor');
+const previewInner = document.getElementById('preview-inner');
+const previewEl  = document.getElementById('preview');
+const previewEmpty = document.getElementById('preview-empty');
+
+// ----- State -----
+let currentFilename = 'untitled.md';
+let isDirty = false;
+let viewMode = 'split'; // split | edit | preview
+let isFocusMode = false;
+let debounceTimer = null;
+let scrollSync = true;
+let findMatches = [];
+let findIndex = 0;
+
+// ----- Debounced Preview Update -----
+function updatePreview() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const source = editor.value;
+    const rendered = renderMarkdown(source);
+
+    if (!rendered) {
+      previewInner.innerHTML = '';
+      previewInner.appendChild(previewEmpty.cloneNode(true));
+      document.getElementById('preview-empty') || previewInner.querySelector('#preview-empty')?.removeAttribute('style');
+    } else {
+      previewInner.innerHTML = rendered;
+    }
+    updateStats();
+  }, 280);
+}
+
+editor.addEventListener('input', () => {
+  isDirty = true;
+  updateFilenameDisplay();
+  updatePreview();
+});
+
+// Initial load with sample content
+const SAMPLE_MD = `# Welcome to Markdown Previewer
+
+A **fast**, offline-capable Markdown editor with live preview — no account, no server, no limits.
+
+## Features
+
+- **Live preview** — updates as you type with a 300ms debounce
+- **Syntax highlighting** — powered by highlight.js
+- **GFM support** — tables, task lists, strikethrough, and more
+- **Split/Edit/Preview modes** — toggle with the header buttons
+- **File support** — drag & drop or open any \`.md\` file
+- **Export** — download as \`.md\`, copy HTML, or export a styled \`.html\`
+- **Keyboard shortcuts** — press \`?\` to see them all
+
+## Formatting Examples
+
+**Bold text**, *italic text*, ~~strikethrough~~, and \`inline code\`.
+
+> Blockquotes look great with the teal accent bar. Useful for callouts, citations, or notes.
+
+### Lists
+
+1. First ordered item
+2. Second ordered item
+3. Third item
+
+- Unordered list item
+- Another item
+  - Nested item (use Tab to indent)
+
+### Task Lists
+
+- [x] Build the Markdown engine
+- [x] Add syntax highlighting
+- [x] Keyboard shortcuts
+- [ ] Add a pony
+
+## Code Blocks
+
+\`\`\`javascript
+// A debounced function — classic utility
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const handleInput = debounce(() => {
+  console.log('Editor updated!');
+}, 300);
+\`\`\`
+
+\`\`\`python
+def fibonacci(n):
+    """Generate Fibonacci sequence up to n."""
+    a, b = 0, 1
+    while a < n:
+        yield a
+        a, b = b, a + b
+
+print(list(fibonacci(100)))
+\`\`\`
+
+## Tables
+
+| Feature | Status | Notes |
+|---|---|---|
+| CommonMark | ✅ | Full support |
+| GFM tables | ✅ | Styled & responsive |
+| Task lists | ✅ | Checkboxes rendered |
+| Syntax highlight | ✅ | 180+ languages |
+| Scroll sync | ✅ | Editor ↔ Preview |
+
+## Links & Images
+
+[Visit the CommonMark spec](https://commonmark.org) for full Markdown documentation.
+
+---
+
+*Press \`?\` for keyboard shortcuts. Drag and drop a \`.md\` file to open it.*
+`;
+
+editor.value = SAMPLE_MD;
+updatePreview();
+
+// Force immediate render on load
+clearTimeout(debounceTimer);
+const rendered = renderMarkdown(SAMPLE_MD);
+if (rendered) previewInner.innerHTML = rendered;
+updateStats();
+
+// ----- Stats -----
+function updateStats() {
+  const text = editor.value;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const chars = text.length;
+  const lines = text.split('\n').length;
+  document.getElementById('word-count').textContent = words.toLocaleString();
+  document.getElementById('char-count').textContent = chars.toLocaleString();
+  document.getElementById('line-count').textContent = lines.toLocaleString();
+}
+
+// ----- Cursor Position -----
+function updateCursorPos() {
+  const pos = editor.selectionStart;
+  const text = editor.value.substring(0, pos);
+  const lines = text.split('\n');
+  const line = lines.length;
+  const col = lines[lines.length - 1].length + 1;
+  document.getElementById('cursor-pos').textContent = `Ln ${line}, Col ${col}`;
+}
+editor.addEventListener('keyup', updateCursorPos);
+editor.addEventListener('click', updateCursorPos);
+editor.addEventListener('selectionchange', updateCursorPos);
+
+// ----- Filename display -----
+function updateFilenameDisplay() {
+  const el = document.getElementById('filename-display');
+  el.textContent = currentFilename;
+  el.title = currentFilename;
+  if (isDirty) el.classList.add('unsaved');
+  else el.classList.remove('unsaved');
+}
+
+// ================================================================
+// TOOLBAR ACTIONS
+// ================================================================
+
+function wrapSelection(before, after, defaultText) {
+  const start = editor.selectionStart;
+  const end   = editor.selectionEnd;
+  const sel   = editor.value.substring(start, end) || defaultText;
+  const replacement = before + sel + after;
+  editor.setRangeText(replacement, start, end, 'select');
+  if (!editor.value.substring(start, end)) {
+    editor.setSelectionRange(start + before.length, start + before.length + sel.length);
+  }
+  editor.focus();
+  updatePreview();
+  isDirty = true;
+  updateFilenameDisplay();
+}
+
+function insertAtLineStart(prefix, defaultLine) {
+  const start = editor.selectionStart;
+  const end   = editor.selectionEnd;
+  const text  = editor.value;
+
+  // Find line start
+  const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+  const lineEnd   = text.indexOf('\n', end);
+  const actualEnd = lineEnd === -1 ? text.length : lineEnd;
+
+  const lines = text.substring(lineStart, actualEnd).split('\n');
+  const newLines = lines.map(l => prefix + l);
+  editor.setRangeText(newLines.join('\n'), lineStart, actualEnd, 'end');
+  editor.focus();
+  updatePreview();
+  isDirty = true;
+  updateFilenameDisplay();
+}
+
+function insertBlock(block) {
+  const start = editor.selectionStart;
+  const text  = editor.value;
+  // Ensure newline before and after
+  const before = start === 0 || text[start-1] === '\n' ? '' : '\n';
+  const after  = '\n\n';
+  editor.setRangeText(before + block + after, start, start, 'end');
+  editor.focus();
+  updatePreview();
+  isDirty = true;
+  updateFilenameDisplay();
+}
+
+const toolbarActions = {
+  h1:        () => insertAtLineStart('# '),
+  h2:        () => insertAtLineStart('## '),
+  h3:        () => insertAtLineStart('### '),
+  bold:      () => wrapSelection('**', '**', 'bold text'),
+  italic:    () => wrapSelection('*', '*', 'italic text'),
+  strike:    () => wrapSelection('~~', '~~', 'strikethrough'),
+  code:      () => wrapSelection('`', '`', 'code'),
+  quote:     () => insertAtLineStart('> '),
+  codeblock: () => insertBlock('```\ncode here\n```'),
+  hr:        () => insertBlock('---'),
+  ul:        () => insertAtLineStart('- '),
+  ol:        () => insertAtLineStart('1. '),
+  task:      () => insertAtLineStart('- [ ] '),
+  link:      () => {
+    const url = prompt('Enter URL:') || 'https://example.com';
+    wrapSelection('[', `](${url})`, 'link text');
+  },
+  image:     () => {
+    const url = prompt('Enter image URL:') || 'https://picsum.photos/600/300';
+    const alt = prompt('Alt text:') || 'image';
+    insertBlock(`![${alt}](${url})`);
+  },
+  table:     () => insertBlock('| Column 1 | Column 2 | Column 3 |\n|---|---|---|\n| Cell 1 | Cell 2 | Cell 3 |\n| Cell 4 | Cell 5 | Cell 6 |'),
+};
+
+document.getElementById('toolbar').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (btn) {
+    const action = btn.getAttribute('data-action');
+    if (toolbarActions[action]) toolbarActions[action]();
+  }
+});
+
+// ================================================================
+// KEYBOARD SHORTCUTS
+// ================================================================
+
+editor.addEventListener('keydown', e => {
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (ctrl && e.key === 'b') { e.preventDefault(); toolbarActions.bold(); }
+  else if (ctrl && e.key === 'i') { e.preventDefault(); toolbarActions.italic(); }
+  else if (ctrl && e.key === 'k') { e.preventDefault(); toolbarActions.link(); }
+  else if (ctrl && e.key === '`') { e.preventDefault(); toolbarActions.code(); }
+  else if (ctrl && e.key === 's') { e.preventDefault(); downloadMarkdown(); }
+  else if (ctrl && e.key === 'o') { e.preventDefault(); document.getElementById('file-input').click(); }
+  else if (ctrl && e.key === 'f') { e.preventDefault(); openFindBar(); }
+
+  // Tab key — insert 2 spaces
+  else if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    const end   = editor.selectionEnd;
+    if (e.shiftKey) {
+      // Outdent
+      const text = editor.value;
+      const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+      const line = text.substring(lineStart, start);
+      if (line.startsWith('  ')) {
+        editor.setRangeText('', lineStart, lineStart + 2, 'end');
+      } else if (line.startsWith('\t')) {
+        editor.setRangeText('', lineStart, lineStart + 1, 'end');
+      }
+    } else {
+      editor.setRangeText('  ', start, end, 'end');
+    }
+    updatePreview();
+  }
+
+  // Enter in list — continue list
+  else if (e.key === 'Enter') {
+    const start = editor.selectionStart;
+    const text = editor.value;
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+    const line = text.substring(lineStart, start);
+    const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s(\[ \] |\[x\] )?/);
+    if (listMatch) {
+      e.preventDefault();
+      const indent = listMatch[1];
+      const bullet = listMatch[2];
+      const task   = listMatch[3] ? '[ ] ' : '';
+      const lineContent = line.substring(listMatch[0].length);
+      if (!lineContent.trim()) {
+        // Empty list item — remove bullet
+        editor.setRangeText('\n', lineStart, start, 'end');
+      } else {
+        const nextBullet = /\d+\./.test(bullet)
+          ? (parseInt(bullet) + 1) + '. '
+          : bullet + ' ';
+        editor.setRangeText(`\n${indent}${nextBullet}${task}`, start, start, 'end');
+      }
+      updatePreview();
+    }
+  }
+});
+
+// Global shortcuts
+document.addEventListener('keydown', e => {
+  const ctrl = e.ctrlKey || e.metaKey;
+
+  if (e.key === '?' && !ctrl && document.activeElement !== editor) {
+    e.preventDefault();
+    openShortcutsModal();
+  }
+  if (ctrl && e.shiftKey && e.key === 'F') { e.preventDefault(); toggleFocusMode(); }
+  if (ctrl && e.shiftKey && (e.key === 'L' || e.key === 'l')) { e.preventDefault(); toggleTheme(); }
+  if (e.key === 'Escape') {
+    if (document.getElementById('shortcuts-modal').classList.contains('open')) closeShortcutsModal();
+    if (document.getElementById('find-bar').classList.contains('open')) closeFindBar();
+  }
+});
+
+// ================================================================
+// VIEW MODES
+// ================================================================
+
+const editorPane  = document.getElementById('editor-pane');
+const previewPane = document.getElementById('preview-pane');
+const resizer     = document.getElementById('resizer');
+const toolbar     = document.getElementById('toolbar');
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('btn-split').classList.toggle('active', mode === 'split');
+  document.getElementById('btn-edit').classList.toggle('active', mode === 'edit');
+  document.getElementById('btn-preview').classList.toggle('active', mode === 'preview');
+  document.getElementById('btn-split').setAttribute('aria-pressed', mode === 'split');
+  document.getElementById('btn-edit').setAttribute('aria-pressed', mode === 'edit');
+  document.getElementById('btn-preview').setAttribute('aria-pressed', mode === 'preview');
+
+  editorPane.classList.toggle('hidden', mode === 'preview');
+  previewPane.classList.toggle('hidden', mode === 'edit');
+  previewPane.classList.toggle('no-border', mode !== 'split');
+  resizer.classList.toggle('hidden', mode !== 'split');
+  toolbar.classList.toggle('preview-only', mode === 'preview');
+
+  // Reset flex widths
+  editorPane.style.flex = '';
+  previewPane.style.flex = '';
+}
+
+document.getElementById('btn-split').addEventListener('click', () => setViewMode('split'));
+document.getElementById('btn-edit').addEventListener('click', () => setViewMode('edit'));
+document.getElementById('btn-preview').addEventListener('click', () => setViewMode('preview'));
+
+// ----- Resizer drag -----
+let isResizing = false;
+let resizeStartX = 0;
+let resizeStartEditorWidth = 0;
+
+resizer.addEventListener('mousedown', e => {
+  isResizing = true;
+  resizeStartX = e.clientX;
+  resizeStartEditorWidth = editorPane.getBoundingClientRect().width;
+  resizer.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const mainRect = document.getElementById('main-pane').getBoundingClientRect();
+  const totalWidth = mainRect.width - 5; // minus resizer
+  const newEditorWidth = resizeStartEditorWidth + (e.clientX - resizeStartX);
+  const clampedWidth = Math.max(200, Math.min(totalWidth - 200, newEditorWidth));
+  const editorFlex = clampedWidth / totalWidth;
+  const previewFlex = 1 - editorFlex;
+  editorPane.style.flex = editorFlex.toString();
+  previewPane.style.flex = previewFlex.toString();
+});
+
+document.addEventListener('mouseup', () => {
+  if (isResizing) {
+    isResizing = false;
+    resizer.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+});
+
+// Keyboard resizer
+resizer.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const delta = e.key === 'ArrowLeft' ? -20 : 20;
+    const mainRect = document.getElementById('main-pane').getBoundingClientRect();
+    const totalWidth = mainRect.width - 5;
+    const currentEditorWidth = editorPane.getBoundingClientRect().width;
+    const newEditorWidth = Math.max(200, Math.min(totalWidth - 200, currentEditorWidth + delta));
+    editorPane.style.flex = (newEditorWidth / totalWidth).toString();
+    previewPane.style.flex = (1 - newEditorWidth / totalWidth).toString();
+  }
+});
+
+// ================================================================
+// SCROLL SYNC
+// ================================================================
+
+let editorScrolling = false;
+let previewScrolling = false;
+
+editor.addEventListener('scroll', () => {
+  if (!scrollSync || previewScrolling || viewMode !== 'split') return;
+  editorScrolling = true;
+  const ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
+  previewEl.scrollTop = ratio * (previewEl.scrollHeight - previewEl.clientHeight);
+  requestAnimationFrame(() => { editorScrolling = false; });
+});
+
+previewEl.addEventListener('scroll', () => {
+  if (!scrollSync || editorScrolling || viewMode !== 'split') return;
+  previewScrolling = true;
+  const ratio = previewEl.scrollTop / (previewEl.scrollHeight - previewEl.clientHeight || 1);
+  editor.scrollTop = ratio * (editor.scrollHeight - editor.clientHeight);
+  requestAnimationFrame(() => { previewScrolling = false; });
+});
+
+// ================================================================
+// FOCUS MODE
+// ================================================================
+
+function toggleFocusMode() {
+  isFocusMode = !isFocusMode;
+  document.getElementById('app-header').classList.toggle('focus-mode', isFocusMode);
+  toolbar.classList.toggle('focus-mode', isFocusMode);
+  document.getElementById('btn-focus').classList.toggle('active', isFocusMode);
+  document.getElementById('btn-focus').setAttribute('aria-pressed', isFocusMode);
+
+  if (isFocusMode) showToast('Focus mode on — press Esc or Ctrl+Shift+F to exit');
+}
+
+document.getElementById('btn-focus').addEventListener('click', toggleFocusMode);
+
+// Exit focus mode on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && isFocusMode) toggleFocusMode();
+});
+
+// ================================================================
+// FILE OPEN
+// ================================================================
+
+document.getElementById('btn-open').addEventListener('click', () => {
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+  e.target.value = '';
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    editor.value = ev.target.result;
+    currentFilename = file.name;
+    isDirty = false;
+    updateFilenameDisplay();
+    updatePreview();
+    clearTimeout(debounceTimer);
+    const rendered = renderMarkdown(editor.value);
+    if (rendered) previewInner.innerHTML = rendered;
+    updateStats();
+    showToast(`Opened: ${file.name}`, 'success');
+  };
+  reader.readAsText(file);
+}
+
+// ================================================================
+// DRAG AND DROP
+// ================================================================
+
+const dragOverlay = document.getElementById('drag-overlay');
+let dragCounter = 0;
+
+document.addEventListener('dragenter', e => {
+  if ([...e.dataTransfer.types].includes('Files')) {
+    dragCounter++;
+    dragOverlay.classList.add('active');
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('dragleave', e => {
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    dragOverlay.classList.remove('active');
+  }
+});
+
+document.addEventListener('dragover', e => {
+  if ([...e.dataTransfer.types].includes('Files')) e.preventDefault();
+});
+
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  dragCounter = 0;
+  dragOverlay.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt') || file.type === 'text/plain')) {
+    loadFile(file);
+  } else if (file) {
+    showToast('Please drop a .md or .txt file', 'error');
+  }
+});
+
+// ================================================================
+// EXPORT
+// ================================================================
+
+function downloadMarkdown() {
+  const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentFilename;
+  a.click();
+  URL.revokeObjectURL(url);
+  isDirty = false;
+  updateFilenameDisplay();
+  showToast(`Saved: ${currentFilename}`, 'success');
+}
+
+document.getElementById('btn-download-md').addEventListener('click', downloadMarkdown);
+
+document.getElementById('btn-copy-html').addEventListener('click', () => {
+  const html = previewInner.innerHTML;
+  navigator.clipboard.writeText(html).then(() => {
+    showToast('HTML copied to clipboard!', 'success');
+  }).catch(() => {
+    showToast('Could not copy to clipboard', 'error');
+  });
+});
+
+document.getElementById('btn-export-html').addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const content = previewInner.innerHTML;
+  const title = currentFilename.replace(/\.(md|markdown)$/, '');
+
+  const fullHtml = `<!DOCTYPE html>
+<html lang="en" data-theme="${isDark ? 'dark' : 'light'}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <style>
+    :root { --color-bg:#f7f6f2;--color-surface:#f9f8f5;--color-surface-offset:#f0ede8;--color-border:#d4d1ca;--color-divider:#dcd9d5;--color-text:#28251d;--color-text-muted:#7a7974;--color-text-faint:#bab9b4;--color-primary:#01696f; }
+    [data-theme="dark"] { --color-bg:#171614;--color-surface:#1c1b19;--color-surface-offset:#1d1c1a;--color-border:#393836;--color-divider:#262523;--color-text:#cdccca;--color-text-muted:#797876;--color-text-faint:#5a5957;--color-primary:#4f98a3; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Satoshi',sans-serif;font-size:16px;line-height:1.75;color:var(--color-text);background:var(--color-bg);padding:clamp(2rem,5vw,4rem) clamp(1rem,5vw,2rem);max-width:760px;margin:0 auto;}
+    h1,h2,h3,h4,h5,h6{font-weight:700;line-height:1.25;margin-top:1.75em;margin-bottom:0.5em;}
+    h1:first-child,h2:first-child{margin-top:0}
+    h1{font-size:2rem;letter-spacing:-0.02em}
+    h2{font-size:1.5rem;border-bottom:1px solid var(--color-divider);padding-bottom:0.3em}
+    h3{font-size:1.25rem}
+    p{margin-bottom:1em;max-width:72ch}
+    a{color:var(--color-primary)}
+    code{font-family:'JetBrains Mono',monospace;font-size:0.875em;background:var(--color-surface-offset);padding:0.15em 0.4em;border-radius:4px;border:1px solid var(--color-border)}
+    pre{background:#1e1e2e;border-radius:8px;overflow-x:auto;margin:1.25em 0}
+    pre code{background:transparent;border:none;padding:1.25rem 1.5rem;font-size:13px;line-height:1.65;display:block;white-space:pre}
+    blockquote{border-left:3px solid var(--color-primary);padding:.75rem 1rem;margin:1em 0;border-radius:0 6px 6px 0;color:var(--color-text-muted)}
+    blockquote p{margin:0}
+    hr{border:none;border-top:1px solid var(--color-divider);margin:2em 0}
+    ul,ol{padding-left:1.5em;margin-bottom:1em}
+    li{margin-bottom:.25em}
+    table{width:100%;border-collapse:collapse;margin:1.25em 0;border:1px solid var(--color-border);border-radius:8px;overflow:hidden}
+    th{padding:.5rem 1rem;text-align:left;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);background:var(--color-surface-offset);border-bottom:1px solid var(--color-border)}
+    td{padding:.5rem 1rem;border-bottom:1px solid var(--color-divider)}
+    tr:last-child td{border-bottom:none}
+    img{max-width:100%;height:auto;border-radius:6px}
+    input[type=checkbox]{accent-color:var(--color-primary)}
+  </style>
+</head>
+<body>
+${content}
+</body>
+</html>`;
+
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = title + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Exported: ${title}.html`, 'success');
+});
+
+// ================================================================
+// FIND IN EDITOR
+// ================================================================
+
+function openFindBar() {
+  const bar = document.getElementById('find-bar');
+  bar.classList.add('open');
+  document.getElementById('find-input').focus();
+  document.getElementById('find-input').select();
+}
+
+function closeFindBar() {
+  document.getElementById('find-bar').classList.remove('open');
+  editor.focus();
+}
+
+document.getElementById('find-close').addEventListener('click', closeFindBar);
+
+document.getElementById('find-input').addEventListener('input', () => {
+  const query = document.getElementById('find-input').value;
+  if (!query) {
+    document.getElementById('find-count').textContent = '';
+    return;
+  }
+  const text = editor.value;
+  const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  findMatches = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) findMatches.push(m.index);
+  findIndex = 0;
+  const count = findMatches.length;
+  document.getElementById('find-count').textContent = count > 0 ? `${Math.min(findIndex + 1, count)} / ${count}` : '0 results';
+  if (count > 0) highlightFindMatch();
+});
+
+function highlightFindMatch() {
+  if (!findMatches.length) return;
+  const idx = findMatches[findIndex % findMatches.length];
+  const query = document.getElementById('find-input').value;
+  editor.setSelectionRange(idx, idx + query.length);
+  editor.focus();
+  // Scroll to selection
+  const linesBefore = editor.value.substring(0, idx).split('\n').length;
+  const lineHeight = 14 * 1.75;
+  editor.scrollTop = (linesBefore - 3) * lineHeight;
+  document.getElementById('find-count').textContent = `${(findIndex % findMatches.length) + 1} / ${findMatches.length}`;
+}
+
+document.getElementById('find-next').addEventListener('click', () => {
+  findIndex++;
+  highlightFindMatch();
+});
+document.getElementById('find-prev').addEventListener('click', () => {
+  findIndex = Math.max(0, findIndex - 1);
+  highlightFindMatch();
+});
+
+document.getElementById('find-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.shiftKey ? findIndex-- : findIndex++; highlightFindMatch(); }
+  if (e.key === 'Escape') closeFindBar();
+});
+
+// ================================================================
+// SHORTCUTS MODAL
+// ================================================================
+
+function openShortcutsModal() {
+  const modal = document.getElementById('shortcuts-modal');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.getElementById('close-shortcuts-modal').focus();
+}
+
+function closeShortcutsModal() {
+  const modal = document.getElementById('shortcuts-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  editor.focus();
+}
+
+document.getElementById('btn-shortcuts').addEventListener('click', openShortcutsModal);
+document.getElementById('close-shortcuts-modal').addEventListener('click', closeShortcutsModal);
+
+document.getElementById('shortcuts-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('shortcuts-modal')) closeShortcutsModal();
+});
+
+// ================================================================
+// AGENT 4 — THEME / DARK MODE
+// (Accessibility & QA Officer also owns this)
+// ================================================================
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+
+  // Switch hljs theme
+  const hlLink = document.getElementById('hljs-theme');
+  if (theme === 'dark') {
+    hlLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css';
+  } else {
+    hlLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css';
+  }
+
+  const btn = document.getElementById('btn-theme');
+  if (theme === 'dark') {
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+    btn.setAttribute('aria-label', 'Switch to light mode');
+    btn.setAttribute('data-tooltip', 'Light mode');
+  } else {
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+    btn.setAttribute('aria-label', 'Switch to dark mode');
+    btn.setAttribute('data-tooltip', 'Dark mode');
+  }
+}
+
+let currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+setTheme(currentTheme);
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(currentTheme);
+}
+
+document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+document.querySelector('[data-theme-toggle]')?.addEventListener('click', toggleTheme);
+
+// Watch system preference
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!document.documentElement.hasAttribute('data-theme')) {
+    currentTheme = e.matches ? 'dark' : 'light';
+    setTheme(currentTheme);
+  }
+});
+
+// ================================================================
+// TOAST
+// ================================================================
+
+function showToast(message, type = '') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast' + (type ? ' ' + type : '');
+  toast.textContent = message;
+  toast.setAttribute('role', 'status');
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('show'));
+  });
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }, 2800);
+}
+
+// ================================================================
+// AGENT 4 — ACCESSIBILITY & QA
+// Final checks: ARIA, focus management, mobile
+// ================================================================
+
+// Trap focus in modal
+document.getElementById('shortcuts-modal').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const modal = document.getElementById('shortcuts-modal-inner');
+  const focusable = [...modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])')];
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+// Mobile: show only preview on small screens by default
+if (window.innerWidth <= 640) {
+  setViewMode('edit');
+}
+
+// Announce view mode changes to screen readers
+function announceViewMode(mode) {
+  const labels = { split: 'Split view', edit: 'Editor only', preview: 'Preview only' };
+  showToast(labels[mode]);
+}
+document.getElementById('btn-split').addEventListener('click', () => announceViewMode('split'));
+document.getElementById('btn-edit').addEventListener('click',  () => announceViewMode('edit'));
+document.getElementById('btn-preview').addEventListener('click', () => announceViewMode('preview'));
+
+// ================================================================
+// INIT
+// ================================================================
+updateStats();
+updateCursorPos();
+editor.focus();
+
+// Show welcome hint after a short delay
+setTimeout(() => {
+  showToast('Press ? to see keyboard shortcuts');
+}, 1200);
+</script>
+</body>
+</html>
